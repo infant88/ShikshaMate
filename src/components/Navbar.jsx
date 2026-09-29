@@ -12,7 +12,8 @@ import {
   Globe, 
   Award,
   Activity,
-  ChevronDown
+  ChevronDown,
+  Sparkles
 } from 'lucide-react';
 import { CURRICULUM_OPTIONS, LANGUAGES } from '../data/curriculumData';
 import { UI_TRANSLATIONS } from '../data/translations';

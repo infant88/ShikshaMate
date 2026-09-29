@@ -3,16 +3,26 @@
 // Loads API key safely from environment variable (.env.local) or local browser storage
 
 export const getGeminiApiKey = () => {
-  return localStorage.getItem('shikshamate_gemini_api_key') || 
-         import.meta.env.VITE_GEMINI_API_KEY || 
-         '';
+  try {
+    const local = typeof localStorage !== 'undefined' ? localStorage.getItem('shikshamate_gemini_api_key') : null;
+    const envKey = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_GEMINI_API_KEY : '';
+    return (local || envKey || '').trim();
+  } catch (e) {
+    return '';
+  }
 };
 
 export const setGeminiApiKey = (key) => {
-  if (key) {
-    localStorage.setItem('shikshamate_gemini_api_key', key.trim());
-  } else {
-    localStorage.removeItem('shikshamate_gemini_api_key');
+  try {
+    if (typeof localStorage !== 'undefined') {
+      if (key) {
+        localStorage.setItem('shikshamate_gemini_api_key', key.trim());
+      } else {
+        localStorage.removeItem('shikshamate_gemini_api_key');
+      }
+    }
+  } catch (e) {
+    console.warn('localStorage access failed:', e);
   }
 };
 
