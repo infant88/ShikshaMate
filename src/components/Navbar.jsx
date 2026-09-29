@@ -12,10 +12,10 @@ import {
   Globe, 
   Award,
   Activity,
-  ChevronDown,
-  Sparkles
+  ChevronDown
 } from 'lucide-react';
 import { CURRICULUM_OPTIONS, LANGUAGES } from '../data/curriculumData';
+import { UI_TRANSLATIONS } from '../data/translations';
 
 export default function Navbar({ 
   activeTab, 
@@ -27,6 +27,7 @@ export default function Navbar({
   npuLiveStats 
 }) {
   const [showFullTelemetry, setShowFullTelemetry] = useState(false);
+  const t = UI_TRANSLATIONS[selectedLang] || UI_TRANSLATIONS.en;
 
   return (
     <header>
@@ -36,24 +37,24 @@ export default function Navbar({
           <div className="status-chip">
             <span className="pulse-indicator"></span>
             <WifiOff size={12} />
-            <span>100% OFFLINE</span>
+            <span>{t.offlineStatus}</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px' }}>
             <Cpu size={13} color="var(--npu-cyan)" />
-            <span>Hexagon NPU: <strong style={{ color: 'var(--npu-cyan)' }}>{npuLiveStats.activeTops} TOPS</strong></span>
+            <span>{t.npuLabel}: <strong style={{ color: 'var(--npu-cyan)' }}>{npuLiveStats.activeTops} TOPS</strong></span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px' }}>
             <Zap size={13} color="var(--snapdragon-crimson)" />
-            <span>Power: <strong style={{ color: '#F1F5F9' }}>{npuLiveStats.powerWatt}W</strong></span>
+            <span>{t.powerLabel}: <strong style={{ color: '#F1F5F9' }}>{npuLiveStats.powerWatt}W</strong></span>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--slate-silver)' }}>
             <ShieldCheck size={13} color="var(--emerald-green)" />
-            <span>0 Bytes Cloud Exfiltration</span>
+            <span>{t.privacyLabel}</span>
           </div>
 
           <button
@@ -105,7 +106,7 @@ export default function Navbar({
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="brand-title">ShikshaMate</span>
+              <span className="brand-title">{t.appTitle}</span>
               <span style={{ 
                 background: 'rgba(230, 0, 18, 0.15)', 
                 border: '1px solid rgba(230, 0, 18, 0.35)', 
@@ -119,19 +120,19 @@ export default function Navbar({
               </span>
             </div>
             <div style={{ fontSize: '11px', color: 'var(--slate-silver)', marginTop: '-2px' }}>
-              HP OmniBook Edition • Offline Indian Curriculum Tutor
+              {t.appSub}
             </div>
           </div>
         </div>
 
-        {/* Primary Navigation Pills */}
+        {/* Primary Navigation Pills - Dynamically Localized */}
         <div className="nav-pill-group">
           <button 
             className={`nav-pill-btn ${activeTab === 'doubt' ? 'active' : ''}`}
             onClick={() => setActiveTab('doubt')}
           >
             <Camera size={15} />
-            <span>Doubt Solver</span>
+            <span>{t.tabs.doubt}</span>
           </button>
 
           <button 
@@ -139,7 +140,7 @@ export default function Navbar({
             onClick={() => setActiveTab('voice')}
           >
             <Mic size={15} />
-            <span>Voice Tutor</span>
+            <span>{t.tabs.voice}</span>
           </button>
 
           <button 
@@ -147,7 +148,7 @@ export default function Navbar({
             onClick={() => setActiveTab('quiz')}
           >
             <Brain size={15} />
-            <span>Adaptive Quiz</span>
+            <span>{t.tabs.quiz}</span>
           </button>
 
           <button 
@@ -155,7 +156,7 @@ export default function Navbar({
             onClick={() => setActiveTab('telemetry')}
           >
             <Activity size={15} />
-            <span>NPU Studio</span>
+            <span>{t.tabs.telemetry}</span>
           </button>
 
           <button 
@@ -163,7 +164,7 @@ export default function Navbar({
             onClick={() => setActiveTab('curriculum')}
           >
             <BookOpen size={15} />
-            <span>Formulas</span>
+            <span>{t.tabs.curriculum}</span>
           </button>
 
           <button 
@@ -171,7 +172,7 @@ export default function Navbar({
             onClick={() => setActiveTab('dossier')}
           >
             <FileText size={15} />
-            <span>Intake Form</span>
+            <span>{t.tabs.dossier}</span>
           </button>
         </div>
 
@@ -194,16 +195,17 @@ export default function Navbar({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Globe size={14} color="var(--slate-silver)" />
+            <Globe size={14} color="var(--snapdragon-red)" />
             <select 
               className="clean-select"
               value={selectedLang}
               onChange={(e) => setSelectedLang(e.target.value)}
               title="Language"
+              style={{ fontWeight: '700', borderColor: 'var(--border-accent)' }}
             >
               {LANGUAGES.map(l => (
                 <option key={l.code} value={l.code}>
-                  {l.native}
+                  {l.native} ({l.label})
                 </option>
               ))}
             </select>

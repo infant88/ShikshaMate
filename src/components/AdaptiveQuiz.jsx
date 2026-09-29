@@ -10,15 +10,14 @@ import {
   Flame, 
   Calendar, 
   Sparkles, 
-  Target,
-  BarChart3,
-  Check,
-  Zap
+  Target, 
+  BarChart3 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { MOCK_QUIZ_QUESTIONS, TOPIC_KNOWLEDGE_GRAPH } from '../data/curriculumData';
+import { UI_TRANSLATIONS } from '../data/translations';
 
-export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference }) {
+export default function AdaptiveQuiz({ selectedCurriculum, selectedLang, onTriggerInference }) {
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
@@ -28,6 +27,7 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
   const [streakDays, setStreakDays] = useState(14);
   const [viewMode, setViewMode] = useState('quiz'); // 'quiz' | 'heatmap'
 
+  const t = (UI_TRANSLATIONS[selectedLang] || UI_TRANSLATIONS.en).quiz;
   const currentQ = MOCK_QUIZ_QUESTIONS[currentQIndex];
 
   const handleSelectOption = (optId) => {
@@ -44,18 +44,18 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
 
     if (isCorrect) {
       setScore(prev => prev + 1);
-      setTopics(prev => prev.map(t => {
-        if (t.name.toLowerCase().includes(currentQ.topic.toLowerCase())) {
-          return { ...t, mastery: Math.min(100, t.mastery + 8) };
+      setTopics(prev => prev.map(topic => {
+        if (topic.name.toLowerCase().includes(currentQ.topic.toLowerCase())) {
+          return { ...topic, mastery: Math.min(100, topic.mastery + 8) };
         }
-        return t;
+        return topic;
       }));
     } else {
-      setTopics(prev => prev.map(t => {
-        if (t.name.toLowerCase().includes(currentQ.topic.toLowerCase())) {
-          return { ...t, mastery: Math.max(20, t.mastery - 6), reviewsDue: t.reviewsDue + 1 };
+      setTopics(prev => prev.map(topic => {
+        if (topic.name.toLowerCase().includes(currentQ.topic.toLowerCase())) {
+          return { ...topic, mastery: Math.max(20, topic.mastery - 6), reviewsDue: topic.reviewsDue + 1 };
         }
-        return t;
+        return topic;
       }));
     }
   };
@@ -100,19 +100,19 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
               padding: '2px 8px', 
               borderRadius: '12px' 
             }}>
-              Module 3 • Adaptive Engine
+              {t.badge}
             </span>
-            <h2 style={{ fontSize: '18px' }}>Personalized Adaptive Quiz & Retention</h2>
+            <h2 style={{ fontSize: '18px' }}>{t.title}</h2>
           </div>
           <p style={{ color: 'var(--slate-silver)', fontSize: '12.5px' }}>
-            SM-2 spaced repetition engine tracks your mastery across 800+ Indian curriculum concepts.
+            {t.desc}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(230,0,18,0.12)', border: '1px solid var(--border-glow)', padding: '5px 14px', borderRadius: '20px' }}>
             <Flame size={15} color="var(--snapdragon-crimson)" />
-            <span style={{ fontSize: '12.5px', fontWeight: '700', color: '#FFF' }}>{streakDays} Days Streak</span>
+            <span style={{ fontSize: '12.5px', fontWeight: '700', color: '#FFF' }}>{streakDays} {t.streak}</span>
           </div>
 
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '20px', padding: '3px' }}>
@@ -129,7 +129,7 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
                 cursor: 'pointer'
               }}
             >
-              Quiz Practice
+              {t.tabPractice}
             </button>
             <button
               onClick={() => setViewMode('heatmap')}
@@ -144,7 +144,7 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
                 cursor: 'pointer'
               }}
             >
-              Knowledge Heatmap
+              {t.tabHeatmap}
             </button>
           </div>
         </div>
@@ -166,7 +166,7 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
                   </div>
 
                   <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--npu-cyan)' }}>
-                    Question {currentQIndex + 1} of {MOCK_QUIZ_QUESTIONS.length}
+                    {t.questionOf} {currentQIndex + 1} {t.of} {MOCK_QUIZ_QUESTIONS.length}
                   </span>
                 </div>
 
@@ -255,7 +255,7 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--npu-cyan)', fontSize: '11.5px', fontWeight: '700', marginBottom: '4px' }}>
                       <Sparkles size={13} />
-                      <span>ON-DEVICE STEP-BY-STEP EXPLANATION [Phi-3-mini INT4]</span>
+                      <span>{t.explanationTitle}</span>
                     </div>
                     <p style={{ fontSize: '12.5px', color: '#E2E8F0', lineHeight: '1.5' }}>
                       {currentQ.explanation}
@@ -272,12 +272,12 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
                       disabled={!selectedOption}
                       style={{ opacity: selectedOption ? 1 : 0.5 }}
                     >
-                      <span>Check Answer</span>
+                      <span>{t.checkAnswer}</span>
                       <Target size={14} />
                     </button>
                   ) : (
                     <button className="action-btn-cyan" onClick={handleNextQuestion}>
-                      <span>{currentQIndex < MOCK_QUIZ_QUESTIONS.length - 1 ? 'Next Question' : 'View Results'}</span>
+                      <span>{currentQIndex < MOCK_QUIZ_QUESTIONS.length - 1 ? t.nextQuestion : t.viewResults}</span>
                       <ChevronRight size={14} />
                     </button>
                   )}
@@ -287,9 +287,9 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
               /* Quiz Completion Screen */
               <div style={{ textAlign: 'center', padding: '36px 16px' }}>
                 <Award size={64} color="var(--snapdragon-crimson)" style={{ margin: '0 auto 16px' }} />
-                <h3 style={{ fontSize: '24px', marginBottom: '6px' }}>Sprint Completed!</h3>
+                <h3 style={{ fontSize: '24px', marginBottom: '6px' }}>{t.completedTitle}</h3>
                 <p style={{ color: 'var(--slate-silver)', fontSize: '13.5px', marginBottom: '24px' }}>
-                  You scored <strong style={{ color: 'var(--npu-cyan)' }}>{score} / {MOCK_QUIZ_QUESTIONS.length}</strong> on this curriculum diagnostic round.
+                  {t.scoreLabel} <strong style={{ color: 'var(--npu-cyan)' }}>{score} / {MOCK_QUIZ_QUESTIONS.length}</strong>
                 </p>
 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', marginBottom: '24px' }}>
@@ -309,7 +309,7 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
 
                 <button className="action-btn-primary" onClick={handleRestartQuiz}>
                   <RotateCcw size={14} />
-                  <span>Practice Another Round</span>
+                  <span>{t.practiceAgain}</span>
                 </button>
               </div>
             )}
@@ -321,7 +321,7 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
             <div className="card-panel" style={{ padding: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                 <Calendar size={16} color="var(--snapdragon-red)" />
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>Official Exam Targets (Offline Tracking)</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>{t.examTargets}</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -361,13 +361,13 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
             <div className="card-panel" style={{ background: 'rgba(245, 158, 11, 0.05)', borderColor: 'rgba(245, 158, 11, 0.3)', padding: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                 <AlertTriangle size={15} color="var(--amber-gold)" />
-                <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--amber-gold)' }}>SM-2 Flag: Review Rotational Dynamics</span>
+                <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--amber-gold)' }}>{t.boosterTitle}</span>
               </div>
               <p style={{ fontSize: '12px', color: '#CBD5E1', marginBottom: '12px', lineHeight: '1.5' }}>
-                Based on your last quiz, pure rolling acceleration needs another review to move to permanent retention.
+                {t.boosterDesc}
               </p>
               <button className="action-btn-secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '12px' }}>
-                <span>Launch 3-Question Booster</span>
+                <span>{t.launchBooster}</span>
                 <ChevronRight size={13} />
               </button>
             </div>
@@ -389,9 +389,9 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {topics.map((t) => (
+            {topics.map((topic) => (
               <div 
-                key={t.id}
+                key={topic.id}
                 style={{
                   background: 'rgba(6, 9, 16, 0.65)',
                   border: '1px solid var(--border-subtle)',
@@ -404,30 +404,30 @@ export default function AdaptiveQuiz({ selectedCurriculum, onTriggerInference })
                 }}
               >
                 <div style={{ minWidth: '220px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#FFF' }}>{t.name}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--slate-silver)' }}>{t.subject} • {t.chapters}</div>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#FFF' }}>{topic.name}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--slate-silver)' }}>{topic.subject} • {topic.chapters}</div>
                 </div>
 
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ flex: 1, height: '7px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
                     <div 
                       style={{
-                        width: `${t.mastery}%`,
+                        width: `${topic.mastery}%`,
                         height: '100%',
                         borderRadius: '4px',
-                        background: t.mastery >= 75 ? 'var(--emerald-green)' : t.mastery >= 55 ? 'var(--amber-gold)' : 'var(--snapdragon-red)'
+                        background: topic.mastery >= 75 ? 'var(--emerald-green)' : topic.mastery >= 55 ? 'var(--amber-gold)' : 'var(--snapdragon-red)'
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', minWidth: '40px', fontWeight: '700', color: t.mastery >= 75 ? '#34D399' : t.mastery >= 55 ? '#FBBF24' : '#F87171' }}>
-                    {t.mastery}%
+                  <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', minWidth: '40px', fontWeight: '700', color: topic.mastery >= 75 ? '#34D399' : topic.mastery >= 55 ? '#FBBF24' : '#F87171' }}>
+                    {topic.mastery}%
                   </span>
                 </div>
 
                 <div>
-                  {t.reviewsDue > 0 ? (
+                  {topic.reviewsDue > 0 ? (
                     <span style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--amber-gold)', fontSize: '10.5px', padding: '2px 8px', borderRadius: '10px' }}>
-                      {t.reviewsDue} Reviews Due
+                      {topic.reviewsDue} Reviews Due
                     </span>
                   ) : (
                     <span style={{ background: 'rgba(16,185,129,0.15)', color: '#34D399', fontSize: '10.5px', padding: '2px 8px', borderRadius: '10px' }}>

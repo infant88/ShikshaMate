@@ -16,12 +16,11 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Edit3,
   Send,
-  MessageCircle,
-  Maximize2
+  MessageCircle
 } from 'lucide-react';
-import { SAMPLE_PROBLEMS } from '../data/curriculumData';
+import { SAMPLE_PROBLEMS, LANGUAGES } from '../data/curriculumData';
+import { UI_TRANSLATIONS } from '../data/translations';
 
 export default function DoubtSolver({ selectedCurriculum, selectedLang, onTriggerInference }) {
   const [activeProblem, setActiveProblem] = useState(SAMPLE_PROBLEMS[0]);
@@ -33,13 +32,15 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
   const [completedSteps, setCompletedSteps] = useState({});
   const [followUpQuery, setFollowUpQuery] = useState('');
   const [followUpResponses, setFollowUpResponses] = useState([]);
-  const [activeLangOverride, setActiveLangOverride] = useState(selectedLang);
+  const [currentLang, setCurrentLang] = useState(selectedLang);
   const [selectedBox, setSelectedBox] = useState('all');
 
   const videoRef = useRef(null);
+  const t = (UI_TRANSLATIONS[currentLang] || UI_TRANSLATIONS.en).doubtSolver;
 
+  // Sync with prop when parent language changes
   useEffect(() => {
-    setActiveLangOverride(selectedLang);
+    setCurrentLang(selectedLang);
   }, [selectedLang]);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
       setFollowUpResponses([]);
       setSelectedBox('all');
       onTriggerInference(24, 1.8);
-    }, 450);
+    }, 350);
   };
 
   const toggleCamera = async () => {
@@ -86,6 +87,16 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
     }
   };
 
+  const getActiveSteps = () => {
+    if (activeProblem.solutionSteps[currentLang]) {
+      return activeProblem.solutionSteps[currentLang];
+    }
+    if (activeProblem.solutionSteps.hi && currentLang !== 'en') {
+      return activeProblem.solutionSteps.hi;
+    }
+    return activeProblem.solutionSteps.en;
+  };
+
   const toggleSpeech = () => {
     if (speaking) {
       stopAudio();
@@ -94,12 +105,19 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
 
     if (!('speechSynthesis' in window)) return;
 
-    const currentLang = activeLangOverride === 'hi' ? 'hi' : 'en';
-    const steps = activeProblem.solutionSteps[currentLang] || activeProblem.solutionSteps.en;
+    const steps = getActiveSteps();
     const textToRead = `${activeProblem.title}. ${steps.map(s => s.title + '. ' + s.content).join(' ')}`;
 
     const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.lang = currentLang === 'hi' ? 'hi-IN' : 'en-IN';
+    const langMap = {
+      en: 'en-IN',
+      hi: 'hi-IN',
+      mr: 'mr-IN',
+      ta: 'ta-IN',
+      te: 'te-IN',
+      kn: 'kn-IN'
+    };
+    utterance.lang = langMap[currentLang] || 'en-IN';
     utterance.rate = 1.0;
 
     utterance.onend = () => setSpeaking(false);
@@ -136,20 +154,30 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
     onTriggerInference(90, 3.5);
 
     setTimeout(() => {
-      let ans = activeLangOverride === 'hi'
-        ? `बिल्कुल! अगर हम उत्तल दर्पण (Convex Mirror) लेते, तो फोकस दूरी f धनात्मक (+15 cm) होती। तब 1/v = 1/15 - (-1/25) = 1/15 + 1/25 = 8/75 cm बनता, जिससे प्रतिबिम्ब हमेशा आभासी और सीधा (Virtual & Erect) बनता।`
-        : `Great question! If this were a convex mirror instead, the focal length f would be positive (+15.0 cm). The mirror equation would yield 1/v = 1/15 - (-1/25) = 8/75, giving v = +9.38 cm. The image would always be virtual, erect, and diminished behind the mirror!`;
+      let ans = '';
+      if (currentLang === 'hi') {
+        ans = `बिल्कुल! अगर हम उत्तल दर्पण (Convex Mirror) लेते, तो फोकस दूरी f धनात्मक (+15 cm) होती। तब 1/v = 1/15 - (-1/25) = 8/75 cm बनता, जिससे प्रतिबिम्ब हमेशा आभासी और सीधा (Virtual & Erect) बनता।`;
+      } else if (currentLang === 'mr') {
+        ans = `नक्कीच! जर आपण बहिर्गोल आरसा घेतला असता, तर नाभीय अंतर f धन (+15 cm) झाले असते. तेव्हा 1/v = 8/75 सेमी येऊन प्रतिमा नेहमी आभासी आणि सुलट (Virtual & Erect) तयार झाली असती.`;
+      } else if (currentLang === 'ta') {
+        ans = `நிச்சயமாக! இது குழி ஆடிக்கு பதிலாக குவி ஆடியாக இருந்தால், குவியத் தொலைவு f நேர்மறையாக (+15 cm) இருக்கும். பிம்பம் எப்போதும் மாய மற்றும் நேரான பிம்பமாக (Virtual & Erect) அமையும்.`;
+      } else if (currentLang === 'te') {
+        ans = `ఖచ్చితంగా! ఇది కుంభాకార దర్పణం అయితే నాభ్యాంతరం f ధనాత్మకం (+15 cm) అవుతుంది. ప్రతిబింబం ఎల్లప్పుడూ మిధ్యా మరియు నిటారైన ప్రతిబింబంగా (Virtual & Erect) ఏర్పడుతుంది.`;
+      } else if (currentLang === 'kn') {
+        ans = `ಖಂಡಿತ! ಇದು ಪೀನ ದರ್ಪಣವಾಗಿದ್ದರೆ ಸಂಗಮ ದೂರ f ಧನಾತ್ಮಕವಾಗಿರುತ್ತದೆ (+15 cm). ಪ್ರತಿಬಿಂಬವು ಯಾವಾಗಲೂ ಮಿಥ್ಯ ಮತ್ತು ನೇರವಾಗಿರುತ್ತದೆ (Virtual & Erect).`;
+      } else {
+        ans = `Great question! If this were a convex mirror instead, the focal length f would be positive (+15.0 cm). The mirror equation would yield 1/v = 1/15 - (-1/25) = 8/75, giving v = +9.38 cm. The image would always be virtual, erect, and diminished behind the mirror!`;
+      }
 
       setFollowUpResponses(prev => [
         ...prev,
-        { query: q, answer: ans, time: 'Just now' }
+        { query: q, answer: ans }
       ]);
       onTriggerInference(22, 1.7);
-    }, 500);
+    }, 450);
   };
 
-  const currentLang = activeLangOverride === 'hi' ? 'hi' : 'en';
-  const solutionSteps = activeProblem.solutionSteps[currentLang] || activeProblem.solutionSteps.en;
+  const solutionSteps = getActiveSteps();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -157,7 +185,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
       {/* Sleek Problem Selector Strip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
         <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--slate-silver)', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
-          Quick Demo Doubts:
+          {t.quickDemos}
         </span>
         {SAMPLE_PROBLEMS.map((prob) => (
           <button
@@ -181,7 +209,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
           >
             <span>{prob.subject.split(' ')[0]}</span>
             <span>•</span>
-            <span>{prob.title.slice(0, 28)}...</span>
+            <span>{prob.title.slice(0, 26)}...</span>
           </button>
         ))}
       </div>
@@ -196,7 +224,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Eye size={16} color="var(--npu-cyan)" />
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>Textbook Page & NPU OCR Lens</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>{t.textbookLens}</span>
               </div>
 
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -206,7 +234,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
                   style={{ padding: '5px 12px', fontSize: '11.5px' }}
                 >
                   <Camera size={13} color="var(--snapdragon-red)" />
-                  <span>{isCameraActive ? 'Close Camera' : 'Live Camera'}</span>
+                  <span>{isCameraActive ? t.closeCamera : t.liveCamera}</span>
                 </button>
               </div>
             </div>
@@ -254,7 +282,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
                 <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--npu-cyan)' }}>
                   QUALCOMM AI HUB TrOCR INT8 (1.18s)
                 </span>
-                <span style={{ fontSize: '11px', color: 'var(--emerald-green)' }}>Confidence: 99.4%</span>
+                <span style={{ fontSize: '11px', color: 'var(--emerald-green)' }}>{t.confidence}: 99.4%</span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#E2E8F0', fontStyle: 'italic', lineHeight: '1.5' }}>
                 "{activeProblem.extractedText}"
@@ -266,12 +294,12 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
           <div className="card-panel glow-cyan" style={{ padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Cpu size={16} color="var(--npu-cyan)" />
-              <span style={{ fontSize: '12.5px', fontWeight: '600' }}>Snapdragon X Direct Inference:</span>
+              <span style={{ fontSize: '12.5px', fontWeight: '600' }}>{t.directInference}:</span>
             </div>
             <div style={{ display: 'flex', gap: '14px', fontSize: '12px', fontFamily: 'var(--font-mono)' }}>
-              <span>OCR: <strong style={{ color: 'var(--npu-cyan)' }}>1.18s</strong></span>
-              <span>SLM: <strong style={{ color: 'var(--emerald-green)' }}>52 t/s</strong></span>
-              <span>Power: <strong style={{ color: 'var(--snapdragon-crimson)' }}>3.2W</strong></span>
+              <span>{t.ocrLatency}: <strong style={{ color: 'var(--npu-cyan)' }}>1.18s</strong></span>
+              <span>{t.slmSpeed}: <strong style={{ color: 'var(--emerald-green)' }}>52 t/s</strong></span>
+              <span>{t.activePower}: <strong style={{ color: 'var(--snapdragon-crimson)' }}>3.2W</strong></span>
             </div>
           </div>
 
@@ -282,7 +310,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
           
           <div className="card-panel glow-red" style={{ padding: '22px' }}>
             
-            {/* Header info & Language Switcher */}
+            {/* Header info & Multi-Language Selector */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
               <div>
                 <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--snapdragon-crimson)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -291,37 +319,29 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
                 <h3 style={{ fontSize: '17px', color: '#FFFFFF', marginTop: '2px' }}>{activeProblem.title}</h3>
               </div>
 
-              {/* Language and Audio Controls */}
+              {/* Language Pills and Audio Controls */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: '2px' }}>
-                  <button
-                    onClick={() => setActiveLangOverride('en')}
-                    style={{
-                      background: activeLangOverride === 'en' ? 'var(--snapdragon-red)' : 'transparent',
-                      border: 'none',
-                      color: '#FFF',
-                      fontSize: '11px',
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    English
-                  </button>
-                  <button
-                    onClick={() => setActiveLangOverride('hi')}
-                    style={{
-                      background: activeLangOverride === 'hi' ? 'var(--snapdragon-red)' : 'transparent',
-                      border: 'none',
-                      color: '#FFF',
-                      fontSize: '11px',
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    हिंदी
-                  </button>
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => setCurrentLang(lang.code)}
+                      style={{
+                        background: currentLang === lang.code ? 'var(--snapdragon-red)' : 'transparent',
+                        border: 'none',
+                        color: currentLang === lang.code ? '#FFF' : 'var(--slate-silver)',
+                        fontSize: '11px',
+                        fontWeight: currentLang === lang.code ? '700' : '500',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                      title={lang.label}
+                    >
+                      {lang.native}
+                    </button>
+                  ))}
                 </div>
 
                 <button 
@@ -331,7 +351,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
                   title="Read Solution Aloud"
                 >
                   {speaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                  <span>{speaking ? 'Stop' : 'Listen'}</span>
+                  <span>{speaking ? t.stopAudio : t.readAloud}</span>
                 </button>
               </div>
             </div>
@@ -346,7 +366,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--npu-cyan)', fontWeight: '700', fontSize: '11.5px', marginBottom: '2px' }}>
                 <Sparkles size={13} />
-                <span>KEY CONCEPT & FORMULA</span>
+                <span>{t.keyConcept}</span>
               </div>
               <p style={{ fontSize: '12.5px', color: '#E2E8F0' }}>
                 {activeProblem.conceptSummary}
@@ -391,7 +411,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
                         }}
                       >
                         {isDone ? <Check size={12} /> : null}
-                        <span>{isDone ? 'Understood' : 'Mark as Understood'}</span>
+                        <span>{isDone ? t.understood : t.markUnderstood}</span>
                       </button>
                     </div>
 
@@ -407,7 +427,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
             <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
               <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--slate-silver)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <MessageCircle size={14} color="var(--npu-cyan)" />
-                <span>Ask a Follow-Up Question on this Problem</span>
+                <span>{t.followUpTitle}</span>
               </div>
 
               {followUpResponses.map((res, i) => (
@@ -422,7 +442,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
                   type="text"
                   value={followUpQuery}
                   onChange={(e) => setFollowUpQuery(e.target.value)}
-                  placeholder="e.g. What if the mirror was convex? or Explain step 2 in simpler words..."
+                  placeholder={t.followUpPlaceholder}
                   style={{
                     flex: 1,
                     background: 'rgba(6, 9, 16, 0.8)',
@@ -444,7 +464,7 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
             <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
               <div style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <HelpCircle size={15} color="var(--snapdragon-red)" />
-                <span>Related Practice Questions for Revision</span>
+                <span>{t.practiceTitle}</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -469,14 +489,14 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
                           marginLeft: '8px'
                         }}
                       >
-                        <span>{revealedHints[idx] ? 'Hide' : 'Hint'}</span>
+                        <span>{revealedHints[idx] ? t.hideHint : t.showHint}</span>
                         {revealedHints[idx] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       </button>
                     </div>
 
                     {revealedHints[idx] && (
                       <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed rgba(255,255,255,0.08)', fontSize: '11.5px', color: 'var(--slate-silver)', fontStyle: 'italic' }}>
-                        💡 <strong>Examiner Hint:</strong> {q.hint}
+                        💡 <strong>{t.examinerTip}:</strong> {q.hint}
                       </div>
                     )}
                   </div>

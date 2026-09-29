@@ -7,10 +7,10 @@ import {
   FileText, 
   Layers, 
   CheckCircle,
-  ExternalLink,
   Tag
 } from 'lucide-react';
 import { CURRICULUM_OPTIONS } from '../data/curriculumData';
+import { UI_TRANSLATIONS } from '../data/translations';
 
 export const FORMULA_VAULT = [
   {
@@ -57,9 +57,19 @@ export const FORMULA_VAULT = [
   }
 ];
 
-export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurriculum }) {
+export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurriculum, selectedLang }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
+
+  const t = (UI_TRANSLATIONS[selectedLang] || UI_TRANSLATIONS.en).curriculum;
+
+  const subjectPills = [
+    { id: 'All', label: t.all },
+    { id: 'Physics', label: t.physics },
+    { id: 'Chemistry', label: t.chemistry },
+    { id: 'Biology', label: t.biology },
+    { id: 'Mathematics', label: t.mathematics }
+  ];
 
   const filteredFormulas = FORMULA_VAULT.filter(item => {
     const matchesSubject = selectedSubject === 'All' || item.subject === selectedSubject;
@@ -70,57 +80,66 @@ export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurr
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
-      <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
+      <div className="card-panel glow-red" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <span className="badge badge-red">Knowledge Vault</span>
-            <h2 style={{ fontSize: '18px' }}>Curriculum Taxonomy & Offline Formula Sheet</h2>
-            <span className="curriculum-tag">NCERT • JEE • NEET • State Boards</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+            <span style={{ 
+              background: 'rgba(230, 0, 18, 0.15)', 
+              color: 'var(--snapdragon-crimson)', 
+              fontSize: '11px', 
+              fontWeight: '700', 
+              padding: '2px 8px', 
+              borderRadius: '12px' 
+            }}>
+              {t.badge}
+            </span>
+            <h2 style={{ fontSize: '18px' }}>{t.title}</h2>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-            Pre-indexed local RAG vector store and formula reference sheets. Accessible instantly without an internet connection.
+          <p style={{ color: 'var(--slate-silver)', fontSize: '12.5px' }}>
+            {t.desc}
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {['All', 'Physics', 'Chemistry', 'Biology', 'Mathematics'].map(subj => (
+        {/* Subject Pills */}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {subjectPills.map(s => (
             <button
-              key={subj}
-              onClick={() => setSelectedSubject(subj)}
-              className={`nav-tab-btn ${selectedSubject === subj ? 'active' : ''}`}
-              style={{ padding: '6px 12px', fontSize: '12px' }}
+              key={s.id}
+              onClick={() => setSelectedSubject(s.id)}
+              className={selectedSubject === s.id ? 'action-btn-primary' : 'action-btn-secondary'}
+              style={{ padding: '6px 14px', fontSize: '11.5px' }}
             >
-              {subj}
+              {s.label}
             </button>
           ))}
         </div>
       </div>
 
       {/* Search Input Bar */}
-      <div className="glass-card" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <Search size={18} color="var(--npu-cyan)" />
+      <div className="card-panel" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <Search size={16} color="var(--npu-cyan)" />
         <input 
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search formulas, concepts, theorems, or exam marking tips..."
+          placeholder={t.searchPlaceholder}
           style={{
             flex: 1,
             background: 'transparent',
             border: 'none',
             outline: 'none',
             color: '#FFFFFF',
-            fontSize: '14px',
+            fontSize: '13px',
             fontFamily: 'var(--font-body)'
           }}
         />
         {searchQuery && (
           <button 
             onClick={() => setSearchQuery('')}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
+            style={{ background: 'none', border: 'none', color: 'var(--slate-silver)', cursor: 'pointer', fontSize: '12px' }}
           >
             Clear
           </button>
@@ -130,15 +149,15 @@ export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurr
       {/* Formulas & Exam Insights Grid */}
       <div className="grid-2">
         {filteredFormulas.map((item, idx) => (
-          <div key={idx} className="glass-card red-border" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+          <div key={idx} className="card-panel glow-red" style={{ padding: '18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
               <div>
-                <span className="badge badge-red" style={{ fontSize: '10px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--snapdragon-crimson)', fontWeight: '700', textTransform: 'uppercase' }}>
                   {item.subject} • {item.topic}
                 </span>
-                <h4 style={{ fontSize: '15px', color: '#FFF' }}>{item.title}</h4>
+                <h4 style={{ fontSize: '15px', color: '#FFF', marginTop: '2px' }}>{item.title}</h4>
               </div>
-              <Bookmark size={15} color="var(--hp-slate)" style={{ cursor: 'pointer' }} />
+              <Bookmark size={14} color="var(--slate-silver)" style={{ cursor: 'pointer' }} />
             </div>
 
             {/* Formula Block */}
@@ -146,19 +165,19 @@ export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurr
               background: '#06080F', 
               border: '1px solid var(--border-cyan)', 
               borderRadius: '8px', 
-              padding: '12px 16px', 
+              padding: '10px 14px', 
               fontFamily: 'var(--font-mono)', 
               color: 'var(--npu-cyan)',
-              fontSize: '13.5px',
+              fontSize: '13px',
               fontWeight: '600',
-              marginBottom: '12px'
+              marginBottom: '10px'
             }}>
               {item.formula}
             </div>
 
             {/* Exam Note */}
-            <div style={{ fontSize: '12.5px', color: '#CBD5E1', lineHeight: '1.5' }}>
-              <span style={{ color: 'var(--warning-amber)', fontWeight: '700' }}>Examiner Tip: </span>
+            <div style={{ fontSize: '12px', color: '#CBD5E1', lineHeight: '1.5' }}>
+              <span style={{ color: 'var(--amber-gold)', fontWeight: '700' }}>Examiner Note: </span>
               {item.examNote}
             </div>
           </div>

@@ -8,35 +8,44 @@ import {
   Cpu, 
   Zap, 
   Sparkles, 
-  Radio, 
   User, 
   Bot, 
-  MessageSquare,
-  Play,
-  RotateCcw,
-  ShieldCheck
+  MessageSquare
 } from 'lucide-react';
 import { VOICE_CONVERSATION_SAMPLES } from '../data/curriculumData';
+import { UI_TRANSLATIONS } from '../data/translations';
 
 export default function VoiceTutor({ selectedCurriculum, selectedLang, onTriggerInference }) {
   const [isListening, setIsListening] = useState(false);
   const [transcriptInput, setTranscriptInput] = useState('');
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [speechRate, setSpeechRate] = useState(1.0);
+
+  const t = (UI_TRANSLATIONS[selectedLang] || UI_TRANSLATIONS.en).voiceTutor;
+
   const [messages, setMessages] = useState([
     {
       id: 'm1',
       sender: 'bot',
-      text: selectedLang === 'hi' 
-        ? 'नमस्ते! मैं ShikshaMate Voice AI हूँ। आप बोलकर या लिखकर NCERT, JEE या NEET के किसी भी विषय पर अपने डाउट्स पूछ सकते हैं।'
-        : 'Hello! I am ShikshaMate Voice AI. Tap the red orb or speak to ask doubts in Science, Math, or Exam prep!',
+      text: t.botGreeting,
       timestamp: 'Just now',
       stats: { latency: '190ms', model: 'Whisper INT8 + Phi-3-mini INT4', npuPower: '2.8W' }
     }
   ]);
-  const [isSynthesizing, setIsSynthesizing] = useState(false);
-  const [speechRate, setSpeechRate] = useState(1.0);
 
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // Update greeting when language changes
+  useEffect(() => {
+    setMessages(prev => [
+      {
+        ...prev[0],
+        text: t.botGreeting
+      },
+      ...prev.slice(1)
+    ]);
+  }, [selectedLang]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -44,7 +53,15 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.lang = selectedLang === 'hi' ? 'hi-IN' : 'en-IN';
+      const langMap = {
+        en: 'en-IN',
+        hi: 'hi-IN',
+        mr: 'mr-IN',
+        ta: 'ta-IN',
+        te: 'te-IN',
+        kn: 'kn-IN'
+      };
+      recognition.lang = langMap[selectedLang] || 'en-IN';
 
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event) => {
@@ -69,19 +86,33 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
     } else {
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.lang = selectedLang === 'hi' ? 'hi-IN' : 'en-IN';
+          const langMap = {
+            en: 'en-IN',
+            hi: 'hi-IN',
+            mr: 'mr-IN',
+            ta: 'ta-IN',
+            te: 'te-IN',
+            kn: 'kn-IN'
+          };
+          recognitionRef.current.lang = langMap[selectedLang] || 'en-IN';
           recognitionRef.current.start();
           setIsListening(true);
         } catch (e) {
           setIsListening(false);
         }
       } else {
-        // Fallback simulation for browsers without Web Speech recognition
         setIsListening(true);
         setTimeout(() => {
-          setTranscriptInput(selectedLang === 'hi' ? 'न्यूटन का दूसरा नियम समझाइए' : 'Explain Lenz\'s law with energy conservation');
+          setTranscriptInput(
+            selectedLang === 'hi' ? 'न्यूटन का दूसरा नियम समझाइए' :
+            selectedLang === 'mr' ? 'न्यूटनचा दुसरा नियम समजावून सांगा' :
+            selectedLang === 'ta' ? 'நியூட்டனின் இரண்டாம் விதியை விளக்குக' :
+            selectedLang === 'te' ? 'న్యూటన్ రెండవ నియమాన్ని వివరించండి' :
+            selectedLang === 'kn' ? 'ನ್ಯೂಟನ್ ಅವರ ಎರಡನೇ ನಿಯಮವನ್ನು ವಿವರಿಸಿ' :
+            'Explain Newton\'s second law with real examples'
+          );
           setIsListening(false);
-        }, 1400);
+        }, 1200);
       }
     }
   };
@@ -102,25 +133,34 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
     onTriggerInference(88, 3.4);
 
     setTimeout(() => {
-      const matchedSample = VOICE_CONVERSATION_SAMPLES.find(s => 
-        query.toLowerCase().includes(s.subject.toLowerCase()) || 
-        query.toLowerCase().includes('newton') || 
-        query.toLowerCase().includes('lenz') ||
-        query.toLowerCase().includes('rubisco')
-      ) || VOICE_CONVERSATION_SAMPLES[0];
+      let botResponse = '';
+      if (selectedLang === 'hi') {
+        botResponse = `न्यूटन का दूसरा नियम (F = m × a) कहता है कि संवेग परिवर्तन की दर लगाए गए बाहरी बल के समानुपाती होती है। जब क्रिकेट खिलाड़ी गेंद कैच करते समय हाथ पीछे खींचता है, तो समय (Δt) बढ़ जाने से हथेलियों पर लगने वाला बल काफी कम हो जाता है और चोट नहीं लगती।`;
+      } else if (selectedLang === 'mr') {
+        botResponse = `न्यूटनचा दुसरा नियम (F = m × a) सांगतो की संवेग बदलाचा दर प्रयुक्त बाह्य बलाशी समानुपाती असतो. क्रिकेटपटू झेल घेताना हात मागे घेतो, ज्यामुळे वेळ वाढून हातावर लागणारे बल कमी होते आणि दुखापत टळते.`;
+      } else if (selectedLang === 'ta') {
+        botResponse = `நியூட்டனின் இரண்டாம் விதி (F = m × a): ஒரு பொருளின் உந்த மாறுபாட்டு வீதம் அதன் மீது செயல்படும் விசைக்கு நேர்விகிதத்தில் இருக்கும். கிரிக்கெட் வீரர் பந்தைப் பிடிக்கும்போது கைகளைப் பின்னோக்கி இழுப்பதால் விசை குறைந்து காயம் தவிர்க்கப்படுகிறது.`;
+      } else if (selectedLang === 'te') {
+        botResponse = `న్యూటన్ రెండవ నియమం (F = m × a): ద్రవ్యవేగ మార్పు రేటు ప్రయోగించిన బలానికి అనులోమానుపాతంలో ఉంటుంది. క్రికెట్ ఆటగాడు బంతిని క్యాచ్ పట్టినప్పుడు చేతులను వెనక్కి లాగడం వల్ల బలం తగ్గి గాయం కాదు.`;
+      } else if (selectedLang === 'kn') {
+        botResponse = `ನ್ಯೂಟನ್ ಅವರ ಎರಡನೇ ನಿಯಮ (F = m × a): ಆವೇಗ ಬದಲಾವಣೆಯ ದರವು ಪ್ರಯೋಗಿಸಿದ ಬಾಹ್ಯ ಬಲಕ್ಕೆ ನೇರ ಅನುಪಾತದಲ್ಲಿರುತ್ತದೆ. ಕ್ರಿಕೆಟ್ ಆಟಗಾರ ಚೆಂಡನ್ನು ಕ್ಯಾಚ್ ಮಾಡುವಾಗ ಕೈಗಳನ್ನು ಹಿಂದಕ್ಕೆ ಎಳೆಯುವುದರಿಂದ ಬಲ ಕಡಿಮೆಯಾಗಿ ಗಾಯ ತಪ್ಪುತ್ತದೆ.`;
+      } else {
+        const matched = VOICE_CONVERSATION_SAMPLES[0];
+        botResponse = matched.response;
+      }
 
       const botMsg = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: matchedSample.response,
+        text: botResponse,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        stats: matchedSample.stats
+        stats: { latency: '280ms', npuPower: '3.1W' }
       };
 
       setMessages(prev => [...prev, botMsg]);
       onTriggerInference(22, 1.6);
-      speakResponse(matchedSample.voiceSnippet || botMsg.text.slice(0, 180));
-    }, 550);
+      speakResponse(botResponse);
+    }, 500);
   };
 
   const speakResponse = (text) => {
@@ -128,7 +168,15 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = selectedLang === 'hi' ? 'hi-IN' : 'en-IN';
+    const langMap = {
+      en: 'en-IN',
+      hi: 'hi-IN',
+      mr: 'mr-IN',
+      ta: 'ta-IN',
+      te: 'te-IN',
+      kn: 'kn-IN'
+    };
+    utterance.lang = langMap[selectedLang] || 'en-IN';
     utterance.rate = speechRate;
 
     utterance.onstart = () => setIsSynthesizing(true);
@@ -162,12 +210,12 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
               padding: '2px 8px', 
               borderRadius: '12px' 
             }}>
-              Module 2 • Hexagon NPU
+              {t.badge}
             </span>
-            <h2 style={{ fontSize: '18px' }}>Voice-First AI Tutoring Interface</h2>
+            <h2 style={{ fontSize: '18px' }}>{t.title}</h2>
           </div>
           <p style={{ color: 'var(--slate-silver)', fontSize: '13px', marginBottom: '14px' }}>
-            Tap the glowing Snapdragon Orb or click a question to speak. All audio processing is completely offline with sub-300ms latency.
+            {t.desc}
           </p>
 
           {/* Quick Voice Chips */}
@@ -193,7 +241,7 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
               >
                 <Sparkles size={12} color="var(--npu-cyan)" />
-                <span>"{sample.userQuery.slice(0, 38)}..."</span>
+                <span>"{sample.userQuery.slice(0, 36)}..."</span>
               </button>
             ))}
           </div>
@@ -223,7 +271,7 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
               fontFamily: 'var(--font-mono)',
               color: isListening ? 'var(--snapdragon-crimson)' : isSynthesizing ? 'var(--npu-cyan)' : 'var(--slate-silver)' 
             }}>
-              {isListening ? '● LISTENING (Whisper INT8)' : isSynthesizing ? '● SPEAKING (FastSpeech2)' : 'Tap Orb to Speak'}
+              {isListening ? t.listening : isSynthesizing ? t.speaking : t.tapToSpeak}
             </span>
           </div>
         </div>
@@ -237,7 +285,7 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <MessageSquare size={16} color="var(--snapdragon-red)" />
-            <span style={{ fontSize: '13px', fontWeight: '700' }}>Live Conversational Stream</span>
+            <span style={{ fontSize: '13px', fontWeight: '700' }}>{t.chatHeader}</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -258,12 +306,12 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
                 }}
               >
                 <VolumeX size={12} />
-                <span>Mute</span>
+                <span>{t.mute}</span>
               </button>
             )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--slate-silver)' }}>
-              <span>Speed:</span>
+              <span>{t.speed}:</span>
               {[0.8, 1.0, 1.25].map(rate => (
                 <button
                   key={rate}
@@ -306,7 +354,7 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
                 ) : (
                   <>
                     <Bot size={12} color="var(--npu-cyan)" />
-                    <span>ShikshaMate Tutor</span>
+                    <span>ShikshaMate Voice AI</span>
                   </>
                 )}
                 <span>• {msg.timestamp}</span>
@@ -357,7 +405,7 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
                       }}
                     >
                       <Volume2 size={12} />
-                      <span>Replay</span>
+                      <span>{t.replay}</span>
                     </button>
                   </div>
                 )}
@@ -396,7 +444,7 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
               type="text"
               value={transcriptInput}
               onChange={(e) => setTranscriptInput(e.target.value)}
-              placeholder={isListening ? "Listening with Whisper INT8... Speak now..." : "Type or speak your doubt in Hindi or English..."}
+              placeholder={isListening ? t.listening : t.inputPlaceholder}
               style={{
                 flex: 1,
                 background: 'rgba(6, 9, 16, 0.8)',

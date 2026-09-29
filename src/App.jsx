@@ -94,6 +94,7 @@ export default function App() {
         {activeTab === 'quiz' && (
           <AdaptiveQuiz 
             selectedCurriculum={selectedCurriculum}
+            selectedLang={selectedLang}
             onTriggerInference={handleTriggerInference}
           />
         )}
@@ -108,6 +109,7 @@ export default function App() {
           <CurriculumExplorer 
             selectedCurriculum={selectedCurriculum}
             setSelectedCurriculum={setSelectedCurriculum}
+            selectedLang={selectedLang}
           />
         )}
 
