@@ -6,7 +6,7 @@ import AdaptiveQuiz from './components/AdaptiveQuiz';
 import SnapdragonNpuDashboard from './components/SnapdragonNpuDashboard';
 import CurriculumExplorer from './components/CurriculumExplorer';
 import SubmissionPitch from './components/SubmissionPitch';
-import { Cpu, ShieldCheck, Heart, Terminal } from 'lucide-react';
+import { Cpu, ShieldCheck, Heart, Camera, Mic, Brain, Sparkles, BookOpen } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('doubt');
@@ -18,26 +18,25 @@ export default function App() {
     queriesSolved: 142
   });
 
-  // Dynamic subtle jitter for NPU stats to feel alive and responsive
   useEffect(() => {
     const interval = setInterval(() => {
       setNpuLiveStats(prev => {
         const baseTops = prev.activeTops > 45 ? 36 : prev.activeTops;
         const jitter = (Math.random() * 4 - 2);
-        const newTops = Math.max(12, Math.min(44, Math.round(baseTops + jitter)));
-        const newPower = (1.8 + (newTops / 45) * 1.6).toFixed(1);
+        const newTops = Math.max(14, Math.min(44, Math.round(baseTops + jitter)));
+        const newPower = (1.8 + (newTops / 45) * 1.5).toFixed(1);
         return {
           ...prev,
           activeTops: newTops,
           powerWatt: newPower
         };
       });
-    }, 2500);
+    }, 2800);
 
     return () => clearInterval(interval);
   }, []);
 
-  const handleTriggerInference = (targetTops = 40, targetPower = 3.6) => {
+  const handleTriggerInference = (targetTops = 40, targetPower = 3.4) => {
     setNpuLiveStats(prev => ({
       activeTops: targetTops,
       powerWatt: targetPower.toString(),
@@ -54,12 +53,16 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
-      {/* Background Neural Matrix & Subtle Mesh */}
-      <div className="bg-mesh" />
-      <div className="bg-grid" />
+    <div className="app-layout">
+      {/* Background Ambient Glows & Grid Mesh */}
+      <div className="ambient-bg">
+        <div className="ambient-blob-1" />
+        <div className="ambient-blob-2" />
+        <div className="ambient-blob-3" />
+      </div>
+      <div className="grid-mesh" />
 
-      {/* Top Telemetry & Main Navigation */}
+      {/* Navigation & Telemetry */}
       <Navbar 
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -71,7 +74,7 @@ export default function App() {
       />
 
       {/* Main Viewport Content */}
-      <main className="content-viewport">
+      <main className="app-viewport">
         {activeTab === 'doubt' && (
           <DoubtSolver 
             selectedCurriculum={selectedCurriculum}
@@ -113,31 +116,30 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
+      {/* Clean Footer */}
       <footer style={{
         marginTop: 'auto',
         borderTop: '1px solid var(--border-subtle)',
-        background: 'rgba(7, 9, 15, 0.9)',
+        background: 'rgba(7, 9, 14, 0.92)',
         backdropFilter: 'var(--backdrop-blur)',
-        padding: '16px 24px',
+        padding: '14px 28px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         fontSize: '12px',
-        color: 'var(--text-muted)'
+        color: 'var(--slate-silver)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Cpu size={15} color="var(--snapdragon-red)" />
-          <span><strong>ShikshaMate</strong> • Built for Snapdragon® AI Lab Build & Present Challenge 2026</span>
+          <Cpu size={14} color="var(--snapdragon-red)" />
+          <span><strong>ShikshaMate</strong> • Snapdragon® AI Lab Build & Present Challenge 2026</span>
           <span>•</span>
-          <span style={{ color: 'var(--npu-cyan)' }}>HP OmniBook X Series Optimized</span>
+          <span style={{ color: 'var(--npu-cyan)' }}>HP OmniBook X Series Target</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span>Total Offline Queries Solved: <strong style={{ color: '#FFF' }}>{npuLiveStats.queriesSolved}</strong></span>
-          <span>Zero Cloud Footprint</span>
-          <span style={{ color: 'var(--success-emerald)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <ShieldCheck size={14} /> 100% Privacy Sandbox
+          <span>Offline Doubts Solved: <strong style={{ color: '#FFF' }}>{npuLiveStats.queriesSolved}</strong></span>
+          <span style={{ color: 'var(--emerald-green)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <ShieldCheck size={14} /> 100% Privacy Sandbox (0 Bytes Sent)
           </span>
         </div>
       </footer>

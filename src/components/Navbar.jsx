@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Cpu, 
   ShieldCheck, 
@@ -9,10 +9,11 @@ import {
   Brain, 
   BookOpen, 
   FileText, 
-  Layers, 
   Globe, 
   Award,
-  Activity
+  Activity,
+  ChevronDown,
+  Sparkles
 } from 'lucide-react';
 import { CURRICULUM_OPTIONS, LANGUAGES } from '../data/curriculumData';
 
@@ -25,135 +26,164 @@ export default function Navbar({
   setSelectedLang,
   npuLiveStats 
 }) {
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const [showFullTelemetry, setShowFullTelemetry] = useState(false);
 
   return (
     <header>
-      {/* Top Snapdragon Hardware Telemetry & Security Header */}
-      <div className="telemetry-bar">
-        <div className="telemetry-group">
-          <div className="offline-badge">
-            <span className="pulse-dot"></span>
-            <WifiOff size={13} />
-            <span>100% OFFLINE SANDBOX</span>
+      {/* Sleek Minimalist Ambient Strip */}
+      <div className="telemetry-strip">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div className="status-chip">
+            <span className="pulse-indicator"></span>
+            <WifiOff size={12} />
+            <span>100% OFFLINE</span>
           </div>
 
-          <div className="telemetry-item">
-            <ShieldCheck size={14} color="#10B981" />
-            <span>Data Exfiltration: <span className="telemetry-val highlight-green">0 Bytes</span></span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px' }}>
+            <Cpu size={13} color="var(--npu-cyan)" />
+            <span>Hexagon NPU: <strong style={{ color: 'var(--npu-cyan)' }}>{npuLiveStats.activeTops} TOPS</strong></span>
           </div>
 
-          <div className="telemetry-item">
-            <Cpu size={14} color="#00F2FE" />
-            <span>Qualcomm Hexagon NPU: <span className="telemetry-val highlight-cyan">{npuLiveStats.activeTops} TOPS</span> / 45 TOPS Peak</span>
-          </div>
-
-          <div className="telemetry-item">
-            <Zap size={14} color="#F59E0B" />
-            <span>Power Draw: <span className="telemetry-val highlight-cyan">{npuLiveStats.powerWatt}W</span> (Sub-4W Active)</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px' }}>
+            <Zap size={13} color="var(--snapdragon-crimson)" />
+            <span>Power: <strong style={{ color: '#F1F5F9' }}>{npuLiveStats.powerWatt}W</strong></span>
           </div>
         </div>
 
-        <div className="telemetry-group">
-          <div className="telemetry-item">
-            <span>HP OmniBook X (Snapdragon X Elite)</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--slate-silver)' }}>
+            <ShieldCheck size={13} color="var(--emerald-green)" />
+            <span>0 Bytes Cloud Exfiltration</span>
           </div>
-          <div className="telemetry-item">
-            <Activity size={13} color="#8A99AD" />
-            <span>QNN EP: <span className="telemetry-val highlight-green">ACTIVE</span></span>
-          </div>
-          <div className="telemetry-item">
-            <span>{currentTime}</span>
-          </div>
+
+          <button
+            onClick={() => setShowFullTelemetry(!showFullTelemetry)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--npu-cyan)',
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <span>{showFullTelemetry ? 'Hide Details' : 'HP OmniBook Specs'}</span>
+            <ChevronDown size={12} style={{ transform: showFullTelemetry ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
         </div>
       </div>
 
-      {/* Main Navigation Header */}
-      <nav className="main-header">
-        <div className="brand-section">
-          <div className="brand-logo-wrap">
-            <Cpu size={26} color="#FFFFFF" />
+      {/* Expandable Hardware Quick Panel */}
+      {showFullTelemetry && (
+        <div style={{ 
+          background: 'rgba(9, 13, 24, 0.95)', 
+          borderBottom: '1px solid var(--border-subtle)', 
+          padding: '10px 28px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          fontSize: '11.5px', 
+          fontFamily: 'var(--font-mono)',
+          color: 'var(--slate-silver)',
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <span>SoC: <strong>Snapdragon® X Elite (X1E-80-100)</strong></span>
+          <span>NPU Engine: <strong>Qualcomm Hexagon 45 TOPS</strong></span>
+          <span>Runtime: <strong>ONNX Runtime + QNN EP</strong></span>
+          <span>RAM Allocation: <strong>3.2 GB / 16 GB Unified LPDDR5x</strong></span>
+          <span>Audio Buffer: <strong>Zero-Persistence Volatile RAM</strong></span>
+        </div>
+      )}
+
+      {/* Main Navigation Bar */}
+      <nav className="main-nav">
+        <div className="nav-brand" onClick={() => setActiveTab('doubt')}>
+          <div className="brand-icon">
+            <Cpu size={22} color="#FFF" />
           </div>
-          <div className="brand-text">
+          <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1>ShikshaMate</h1>
-              <span className="badge badge-red" style={{ fontSize: '10px', padding: '2px 6px' }}>Snapdragon AI</span>
+              <span className="brand-title">ShikshaMate</span>
+              <span style={{ 
+                background: 'rgba(230, 0, 18, 0.15)', 
+                border: '1px solid rgba(230, 0, 18, 0.35)', 
+                color: 'var(--snapdragon-crimson)', 
+                fontSize: '10px', 
+                fontWeight: '700', 
+                padding: '1px 6px', 
+                borderRadius: '8px' 
+              }}>
+                Snapdragon AI
+              </span>
             </div>
-            <div className="brand-tagline">
-              <span>HP OmniBook Edition</span>
-              <span>•</span>
-              <span style={{ color: 'var(--npu-cyan)' }}>Qualcomm AI Hub Powered</span>
+            <div style={{ fontSize: '11px', color: 'var(--slate-silver)', marginTop: '-2px' }}>
+              HP OmniBook Edition • Offline Indian Curriculum Tutor
             </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="nav-tabs">
+        {/* Primary Navigation Pills */}
+        <div className="nav-pill-group">
           <button 
-            className={`nav-tab-btn ${activeTab === 'doubt' ? 'active' : ''}`}
+            className={`nav-pill-btn ${activeTab === 'doubt' ? 'active' : ''}`}
             onClick={() => setActiveTab('doubt')}
           >
-            <Camera size={16} />
+            <Camera size={15} />
             <span>Doubt Solver</span>
           </button>
 
           <button 
-            className={`nav-tab-btn ${activeTab === 'voice' ? 'active' : ''}`}
+            className={`nav-pill-btn ${activeTab === 'voice' ? 'active' : ''}`}
             onClick={() => setActiveTab('voice')}
           >
-            <Mic size={16} />
+            <Mic size={15} />
             <span>Voice Tutor</span>
           </button>
 
           <button 
-            className={`nav-tab-btn ${activeTab === 'quiz' ? 'active' : ''}`}
+            className={`nav-pill-btn ${activeTab === 'quiz' ? 'active' : ''}`}
             onClick={() => setActiveTab('quiz')}
           >
-            <Brain size={16} />
+            <Brain size={15} />
             <span>Adaptive Quiz</span>
           </button>
 
           <button 
-            className={`nav-tab-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
+            className={`nav-pill-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
             onClick={() => setActiveTab('telemetry')}
           >
-            <Cpu size={16} />
-            <span>Snapdragon NPU</span>
+            <Activity size={15} />
+            <span>NPU Studio</span>
           </button>
 
           <button 
-            className={`nav-tab-btn ${activeTab === 'curriculum' ? 'active' : ''}`}
+            className={`nav-pill-btn ${activeTab === 'curriculum' ? 'active' : ''}`}
             onClick={() => setActiveTab('curriculum')}
           >
-            <BookOpen size={16} />
-            <span>Knowledge Vault</span>
+            <BookOpen size={15} />
+            <span>Formulas</span>
           </button>
 
           <button 
-            className={`nav-tab-btn ${activeTab === 'dossier' ? 'active' : ''}`}
+            className={`nav-pill-btn ${activeTab === 'dossier' ? 'active' : ''}`}
             onClick={() => setActiveTab('dossier')}
           >
-            <FileText size={16} />
-            <span>Submission Dossier</span>
+            <FileText size={15} />
+            <span>Intake Form</span>
           </button>
         </div>
 
-        {/* Target Board & Language Switcher */}
-        <div className="header-controls">
+        {/* Curriculum & Language Selector Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Award size={15} color="var(--hp-slate)" />
+            <Award size={14} color="var(--slate-silver)" />
             <select 
-              className="select-pill"
+              className="clean-select"
               value={selectedCurriculum}
               onChange={(e) => setSelectedCurriculum(e.target.value)}
-              title="Target Curriculum / Exam"
+              title="Target Syllabus / Exam"
             >
               {CURRICULUM_OPTIONS.map(c => (
                 <option key={c.id} value={c.id}>
@@ -164,16 +194,16 @@ export default function Navbar({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Globe size={15} color="var(--hp-slate)" />
+            <Globe size={14} color="var(--slate-silver)" />
             <select 
-              className="select-pill"
+              className="clean-select"
               value={selectedLang}
               onChange={(e) => setSelectedLang(e.target.value)}
-              title="Tutoring Language"
+              title="Language"
             >
               {LANGUAGES.map(l => (
                 <option key={l.code} value={l.code}>
-                  {l.native} ({l.label})
+                  {l.native}
                 </option>
               ))}
             </select>

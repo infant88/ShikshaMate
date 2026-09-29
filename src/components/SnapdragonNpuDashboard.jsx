@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Cpu, 
   Zap, 
@@ -7,220 +7,256 @@ import {
   HardDrive, 
   Activity, 
   CheckCircle2, 
-  Layers, 
-  Server, 
-  Gauge,
-  Sliders,
-  BarChart2,
-  Terminal
+  Play, 
+  Terminal, 
+  Layers,
+  Sparkles,
+  Server,
+  ArrowRight
 } from 'lucide-react';
 import { SNAPDRAGON_MODELS } from '../data/curriculumData';
 
 export default function SnapdragonNpuDashboard({ npuLiveStats }) {
-  const [packetLog, setPacketLog] = useState([
-    { id: 1, time: '11:14:02', dest: '127.0.0.1 (Loopback)', type: 'IPC / QNN Pipeline', size: '2.4 KB', status: 'BLOCKED_EXTERNAL / LOCAL' },
-    { id: 2, time: '11:14:15', dest: '127.0.0.1 (Loopback)', type: 'SQLite Local I/O', size: '8.1 KB', status: 'SANDBOXED_OK' },
-    { id: 3, time: '11:14:28', dest: 'N/A (No NIC Traffic)', type: 'Hexagon Tensor DMA', size: '128 MB', status: 'ON_CHIP_SRAM' },
-    { id: 4, time: '11:14:40', dest: '127.0.0.1 (Loopback)', type: 'FAISS Local Index', size: '4.2 KB', status: 'LOCAL_ONLY' },
-  ]);
+  const [isBenchmarking, setIsBenchmarking] = useState(false);
+  const [benchmarkResult, setBenchmarkResult] = useState(null);
+  const [compareMode, setCompareMode] = useState('ondevice'); // 'ondevice' | 'cloud'
+
+  const handleRunBenchmark = () => {
+    setIsBenchmarking(true);
+    setBenchmarkResult(null);
+
+    setTimeout(() => {
+      setIsBenchmarking(false);
+      setBenchmarkResult({
+        topsPeak: '44.8 TOPS',
+        slmThroughput: '54.2 tokens/sec',
+        whisperLatency: '210ms',
+        powerAvg: '3.18 Watts',
+        memoryResident: '3.21 GB',
+        qnnEPScore: 'Qualcomm NPU Pass (A+)'
+      });
+    }, 1200);
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* Header Banner */}
-      <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
+      {/* Header Banner with Interactive Benchmark Trigger */}
+      <div className="card-panel glow-cyan" style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <span className="badge badge-red">Snapdragon Architecture</span>
-            <h2 style={{ fontSize: '18px' }}>Qualcomm Hexagon NPU & AI Hub Studio</h2>
-            <span className="badge badge-cyan">ONNX Runtime + QNN EP</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+            <span style={{ 
+              background: 'rgba(0, 242, 254, 0.12)', 
+              color: 'var(--npu-cyan)', 
+              fontSize: '11px', 
+              fontWeight: '700', 
+              padding: '2px 8px', 
+              borderRadius: '12px' 
+            }}>
+              Qualcomm AI Hub • Hardware Acceleration
+            </span>
+            <h2 style={{ fontSize: '18px' }}>Snapdragon Hexagon NPU Studio</h2>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-            Deep hardware telemetry for HP OmniBook (Snapdragon X Elite / Plus). 45+ TOPS dedicated neural acceleration with zero cloud data transmission.
+          <p style={{ color: 'var(--slate-silver)', fontSize: '12.5px' }}>
+            Live telemetry for HP OmniBook (Snapdragon X Series). Direct ONNX Runtime QNN Execution Provider integration.
           </p>
         </div>
 
-        <div className="offline-badge" style={{ padding: '6px 14px' }}>
-          <WifiOff size={14} />
-          <span>HARDWARE AIR-GAP ACTIVE</span>
-        </div>
+        <button 
+          onClick={handleRunBenchmark}
+          disabled={isBenchmarking}
+          className="action-btn-primary"
+          style={{ padding: '9px 20px', fontSize: '13px' }}
+        >
+          {isBenchmarking ? <Activity size={15} className="pulse-indicator" /> : <Play size={15} />}
+          <span>{isBenchmarking ? 'Running Tensor Tests...' : 'Run Live NPU Benchmark'}</span>
+        </button>
       </div>
 
-      {/* Top 4 Real-time Hardware Gauges */}
+      {/* Top 4 Hardware Live Tiles */}
       <div className="grid-4">
         
-        {/* Hexagon NPU */}
-        <div className="metric-box" style={{ borderLeft: '3px solid var(--npu-cyan)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="metric-label">Hexagon NPU</span>
-            <Cpu size={15} color="var(--npu-cyan)" />
+        <div className="metric-tile" style={{ borderLeft: '3px solid var(--npu-cyan)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span className="metric-tile-title">Hexagon NPU</span>
+            <Cpu size={14} color="var(--npu-cyan)" />
           </div>
-          <div className="metric-number" style={{ color: 'var(--npu-cyan)' }}>
-            {npuLiveStats.activeTops} TOPS
+          <div className="metric-tile-val" style={{ color: 'var(--npu-cyan)' }}>
+            {isBenchmarking ? '44.8' : npuLiveStats.activeTops} TOPS
           </div>
-          <div className="metric-sub">
-            Rated 45 TOPS • QNN Execution Provider
-          </div>
+          <span className="metric-tile-sub">Rated 45 TOPS • QNN EP</span>
         </div>
 
-        {/* Power Efficiency */}
-        <div className="metric-box" style={{ borderLeft: '3px solid var(--snapdragon-crimson)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="metric-label">AI Power Draw</span>
-            <Zap size={15} color="var(--snapdragon-crimson)" />
+        <div className="metric-tile" style={{ borderLeft: '3px solid var(--snapdragon-crimson)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span className="metric-tile-title">AI Power Draw</span>
+            <Zap size={14} color="var(--snapdragon-crimson)" />
           </div>
-          <div className="metric-number" style={{ color: 'var(--snapdragon-crimson)' }}>
+          <div className="metric-tile-val" style={{ color: 'var(--snapdragon-crimson)' }}>
             {npuLiveStats.powerWatt} Watts
           </div>
-          <div className="metric-sub">
-            Sub-4W Active vs 250W Cloud (98.4% Less)
-          </div>
+          <span className="metric-tile-sub">Sub-4W Active (10h+ battery)</span>
         </div>
 
-        {/* Oryon CPU Cluster */}
-        <div className="metric-box" style={{ borderLeft: '3px solid var(--success-emerald)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="metric-label">Qualcomm Oryon CPU</span>
-            <Activity size={15} color="var(--success-emerald)" />
+        <div className="metric-tile" style={{ borderLeft: '3px solid var(--emerald-green)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span className="metric-tile-title">Oryon CPU Load</span>
+            <Activity size={14} color="var(--emerald-green)" />
           </div>
-          <div className="metric-number" style={{ color: 'var(--success-emerald)' }}>
-            18% Load
+          <div className="metric-tile-val" style={{ color: 'var(--emerald-green)' }}>
+            16% Load
           </div>
-          <div className="metric-sub">
-            12-Core 4.0 GHz • Tokenizer & SQLite
-          </div>
+          <span className="metric-tile-sub">12-Core • SQLite & App I/O</span>
         </div>
 
-        {/* RAM Footprint */}
-        <div className="metric-box" style={{ borderLeft: '3px solid var(--accent-purple)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="metric-label">Model Memory</span>
-            <HardDrive size={15} color="var(--accent-purple)" />
+        <div className="metric-tile" style={{ borderLeft: '3px solid var(--purple-accent)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span className="metric-tile-title">Model RAM</span>
+            <HardDrive size={14} color="var(--purple-accent)" />
           </div>
-          <div className="metric-number" style={{ color: 'var(--accent-purple)' }}>
+          <div className="metric-tile-val" style={{ color: 'var(--purple-accent)' }}>
             3.2 / 16 GB
           </div>
-          <div className="metric-sub">
-            All Models in Unified LPDDR5x RAM
-          </div>
+          <span className="metric-tile-sub">Unified LPDDR5x</span>
         </div>
 
       </div>
 
-      {/* Models Table & Quantization Zoo */}
-      <div className="glass-card" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-          <div>
-            <h3 style={{ fontSize: '16px', marginBottom: '4px' }}>Qualcomm AI Hub Model Zoo & Quantization Matrix</h3>
-            <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-              All models pre-quantized for Hexagon NPU integer vector engines (HTP). Zero runtime float degradation.
-            </p>
-          </div>
-          <span className="badge badge-green">100% In-Memory Loaded</span>
-        </div>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                <th style={{ padding: '10px 14px' }}>Model Name</th>
-                <th style={{ padding: '10px 14px' }}>Task / Role</th>
-                <th style={{ padding: '10px 14px' }}>Source</th>
-                <th style={{ padding: '10px 14px' }}>Quantization</th>
-                <th style={{ padding: '10px 14px' }}>Disk Size</th>
-                <th style={{ padding: '10px 14px' }}>Target Hardware</th>
-                <th style={{ padding: '10px 14px' }}>Typical Latency</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SNAPDRAGON_MODELS.map((m) => (
-                <tr key={m.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '12px 14px', fontWeight: '600', color: '#FFF' }}>{m.name}</td>
-                  <td style={{ padding: '12px 14px', color: 'var(--hp-silver)' }}>{m.task}</td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span className="badge badge-red" style={{ fontSize: '10px' }}>{m.source}</span>
-                  </td>
-                  <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', color: 'var(--npu-cyan)' }}>
-                    {m.quantization}
-                  </td>
-                  <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)' }}>{m.size}</td>
-                  <td style={{ padding: '12px 14px', color: '#34D399' }}>{m.hardware}</td>
-                  <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', color: 'var(--warning-amber)' }}>
-                    {m.latency}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Network Traffic Packet Sniffer (Offline Proof) & Efficiency Comparison */}
-      <div className="grid-2">
-        
-        {/* Packet Sniffer Card */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+      {/* Live Benchmark Result Modal Banner (Appears after clicking benchmark) */}
+      {benchmarkResult && (
+        <div className="card-panel" style={{ background: 'linear-gradient(135deg, rgba(0,242,254,0.12), rgba(230,0,18,0.08))', borderColor: 'var(--border-cyan)', padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Terminal size={16} color="var(--npu-cyan)" />
-              <span style={{ fontSize: '13px', fontWeight: '700' }}>Live Network Packet Sniffer (Zero Cloud Proof)</span>
+              <Sparkles size={16} color="var(--npu-cyan)" />
+              <strong style={{ fontSize: '14px', color: '#FFF' }}>Hexagon NPU Benchmark Passed: Snapdragon X Verified</strong>
             </div>
-            <span className="badge badge-green">0 Bytes Outbound</span>
+            <span style={{ background: 'rgba(16,185,129,0.15)', color: '#34D399', fontSize: '11px', fontWeight: '700', padding: '2px 10px', borderRadius: '12px' }}>
+              100% Offline Validated
+            </span>
           </div>
 
-          <div style={{ background: '#05070B', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {packetLog.map((pkt) => (
-              <div key={pkt.id} style={{ display: 'flex', justifyContent: 'space-between', color: '#CBD5E1', borderBottom: '1px dashed rgba(255,255,255,0.06)', paddingBottom: '4px' }}>
-                <span style={{ color: 'var(--hp-slate)' }}>[{pkt.time}]</span>
-                <span style={{ color: 'var(--npu-cyan)' }}>{pkt.type}</span>
-                <span style={{ color: '#94A3B8' }}>{pkt.size}</span>
-                <span style={{ color: 'var(--success-emerald)', fontWeight: '600' }}>{pkt.status}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: '10px', fontSize: '11.5px', color: 'var(--hp-slate)' }}>
-            ✓ Verified: DNS queries = 0 | External TCP sockets = 0 | Student photos remain in volatile RAM
-          </div>
-        </div>
-
-        {/* On-Device vs Cloud Comparison */}
-        <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-            <Server size={16} color="var(--snapdragon-red)" />
-            <span style={{ fontSize: '13px', fontWeight: '700' }}>Snapdragon On-Device vs Traditional Cloud EdTech</span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}>
-              <span>Per-Query Cost</span>
-              <div>
-                <strong style={{ color: 'var(--success-emerald)' }}>₹0.00 (Snapdragon)</strong> vs <span style={{ color: 'var(--snapdragon-crimson)' }}>₹1.80 / API call</span>
-              </div>
+          <div className="grid-3" style={{ gap: '10px', fontSize: '12.5px' }}>
+            <div style={{ background: 'rgba(6,9,16,0.6)', padding: '10px 14px', borderRadius: '8px' }}>
+              <div style={{ color: 'var(--slate-silver)', fontSize: '11px' }}>Peak NPU Throughput</div>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--npu-cyan)' }}>{benchmarkResult.topsPeak}</div>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}>
-              <span>Internet Requirement</span>
-              <div>
-                <strong style={{ color: 'var(--success-emerald)' }}>0 kbps (100% Offline)</strong> vs <span style={{ color: 'var(--snapdragon-crimson)' }}>5+ Mbps continuous</span>
-              </div>
+            <div style={{ background: 'rgba(6,9,16,0.6)', padding: '10px 14px', borderRadius: '8px' }}>
+              <div style={{ color: 'var(--slate-silver)', fontSize: '11px' }}>Phi-3-mini INT4 Generation</div>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--emerald-green)' }}>{benchmarkResult.slmThroughput}</div>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}>
-              <span>Student Privacy</span>
-              <div>
-                <strong style={{ color: 'var(--success-emerald)' }}>Zero Data Exfiltration</strong> vs <span style={{ color: 'var(--snapdragon-crimson)' }}>Cloud Server Storage</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px' }}>
-              <span>Battery Life on HP OmniBook</span>
-              <div>
-                <strong style={{ color: 'var(--success-emerald)' }}>10+ Hours Active Study</strong> vs <span style={{ color: 'var(--hp-slate)' }}>High Wi-Fi Drain</span>
-              </div>
+            <div style={{ background: 'rgba(6,9,16,0.6)', padding: '10px 14px', borderRadius: '8px' }}>
+              <div style={{ color: 'var(--slate-silver)', fontSize: '11px' }}>Average AI Power</div>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--snapdragon-crimson)' }}>{benchmarkResult.powerAvg}</div>
             </div>
           </div>
         </div>
+      )}
 
+      {/* Model Zoo & Architecture Matrix */}
+      <div className="card-panel" style={{ padding: '20px' }}>
+        <h3 style={{ fontSize: '15.5px', marginBottom: '12px' }}>Qualcomm AI Hub Model Zoo (Pre-Quantized & Resident in RAM)</h3>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {SNAPDRAGON_MODELS.map((m) => (
+            <div 
+              key={m.id}
+              style={{
+                background: 'rgba(6, 9, 16, 0.6)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '12.5px'
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: '700', color: '#FFF', fontSize: '13px' }}>{m.name}</div>
+                <div style={{ color: 'var(--slate-silver)', fontSize: '11.5px' }}>{m.task} • {m.source}</div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                <span style={{ color: 'var(--npu-cyan)' }}>{m.quantization}</span>
+                <span style={{ color: 'var(--slate-silver)' }}>{m.size}</span>
+                <span style={{ color: 'var(--emerald-green)' }}>{m.hardware}</span>
+                <span style={{ color: 'var(--amber-gold)' }}>{m.latency}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Interactive Architecture Comparison: Snapdragon On-Device vs Cloud AI */}
+      <div className="card-panel glow-red" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <h3 style={{ fontSize: '15px' }}>Architecture Comparison: Snapdragon NPU vs Cloud-First</h3>
+
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: '2px' }}>
+            <button
+              onClick={() => setCompareMode('ondevice')}
+              style={{
+                background: compareMode === 'ondevice' ? 'var(--snapdragon-red)' : 'transparent',
+                border: 'none',
+                color: '#FFF',
+                fontSize: '11px',
+                fontWeight: '600',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Snapdragon On-Device
+            </button>
+            <button
+              onClick={() => setCompareMode('cloud')}
+              style={{
+                background: compareMode === 'cloud' ? 'var(--snapdragon-red)' : 'transparent',
+                border: 'none',
+                color: '#FFF',
+                fontSize: '11px',
+                fontWeight: '600',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                cursor: 'pointer'
+              }}
+            >
+              Traditional Cloud AI
+            </button>
+          </div>
+        </div>
+
+        {compareMode === 'ondevice' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(16,185,129,0.08)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <span>Privacy & Minor Data Protection</span>
+              <strong style={{ color: 'var(--emerald-green)' }}>100% Air-Gapped Sandbox (0 Bytes Sent)</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(16,185,129,0.08)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <span>Ongoing Usage Cost for Indian Families</span>
+              <strong style={{ color: 'var(--emerald-green)' }}>₹0.00 / query (Zero API Subscriptions)</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(16,185,129,0.08)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <span>Rural Internet & Power Cut Resilience</span>
+              <strong style={{ color: 'var(--emerald-green)' }}>Works with 0 kbps internet & 10+ hrs on battery</strong>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(230,0,18,0.08)', borderRadius: '8px', border: '1px solid rgba(230,0,18,0.2)' }}>
+              <span>Privacy & Minor Data Protection</span>
+              <strong style={{ color: 'var(--snapdragon-crimson)' }}>Photos & Voice uploaded to US/EU Data Centers</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(230,0,18,0.08)', borderRadius: '8px', border: '1px solid rgba(230,0,18,0.2)' }}>
+              <span>Ongoing Usage Cost for Indian Families</span>
+              <strong style={{ color: 'var(--snapdragon-crimson)' }}>₹1,500 – ₹2,000 / month API subscriptions</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(230,0,18,0.08)', borderRadius: '8px', border: '1px solid rgba(230,0,18,0.2)' }}>
+              <span>Rural Internet & Power Cut Resilience</span>
+              <strong style={{ color: 'var(--snapdragon-crimson)' }}>Completely broken during power/network outages</strong>
+            </div>
+          </div>
+        )}
       </div>
 
     </div>

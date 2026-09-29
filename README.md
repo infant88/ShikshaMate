@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🏆 ShikshaMate (शिक्षाMate)
 ### An Offline-First, Privacy-Preserving AI Learning Companion for Indian Students on Snapdragon-Powered HP PCs
 
@@ -115,7 +114,3 @@ npm run preview
 The complete submission document, problem statement, technical approach, and roadmap are integrated into the application under the **Submission Dossier** tab with one-click export to PDF and clipboard copying.
 
 *ShikshaMate — Empowering Bharat's Students with Snapdragon-Powered On-Device AI.*
-=======
-# ShikshaMate
-An offline-first, privacy-preserving AI learning companion for 250M+ Indian students. Powered by Qualcomm AI Hub, ONNX Runtime with QNN Execution Provider, and the Hexagon NPU on Snapdragon X HP OmniBook
->>>>>>> 415be1880c8f7dd69d19403c33bcef71215e4973

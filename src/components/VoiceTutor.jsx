@@ -4,17 +4,17 @@ import {
   MicOff, 
   Volume2, 
   VolumeX, 
-  RotateCcw, 
   Send, 
   Cpu, 
   Zap, 
   Sparkles, 
-  CheckCircle2, 
   Radio, 
   User, 
   Bot, 
   MessageSquare,
-  History
+  Play,
+  RotateCcw,
+  ShieldCheck
 } from 'lucide-react';
 import { VOICE_CONVERSATION_SAMPLES } from '../data/curriculumData';
 
@@ -26,20 +26,18 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
       id: 'm1',
       sender: 'bot',
       text: selectedLang === 'hi' 
-        ? 'नमस्ते! मैं ShikshaMate हूँ — आपका ऑन-डिवाइस AI ट्यूटर। आप बोलकर या लिखकर NCERT, JEE या NEET के किसी भी विषय पर अपने डाउट्स पूछ सकते हैं।'
-        : 'Hello! I am ShikshaMate — your offline AI learning tutor on Snapdragon. Ask me any doubt in Science, Math, or Exam prep via voice or text!',
+        ? 'नमस्ते! मैं ShikshaMate Voice AI हूँ। आप बोलकर या लिखकर NCERT, JEE या NEET के किसी भी विषय पर अपने डाउट्स पूछ सकते हैं।'
+        : 'Hello! I am ShikshaMate Voice AI. Tap the red orb or speak to ask doubts in Science, Math, or Exam prep!',
       timestamp: 'Just now',
-      stats: { latency: '190ms', model: 'Phi-3-mini INT4', npuPower: '2.8W' }
+      stats: { latency: '190ms', model: 'Whisper INT8 + Phi-3-mini INT4', npuPower: '2.8W' }
     }
   ]);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [speechRate, setSpeechRate] = useState(1.0);
-  const [activeVoiceSample, setActiveVoiceSample] = useState(null);
 
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Initialize Speech Recognition if supported
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -48,25 +46,13 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
       recognition.interimResults = true;
       recognition.lang = selectedLang === 'hi' ? 'hi-IN' : 'en-IN';
 
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-
+      recognition.onstart = () => setIsListening(true);
       recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('');
+        const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
         setTranscriptInput(transcript);
       };
-
-      recognition.onerror = (event) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
 
       recognitionRef.current = recognition;
     }
@@ -76,7 +62,6 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Toggle Mic
   const toggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
@@ -88,20 +73,19 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
           recognitionRef.current.start();
           setIsListening(true);
         } catch (e) {
-          console.warn('Recognition start error:', e);
+          setIsListening(false);
         }
       } else {
-        // Fallback simulation for unsupported browsers
+        // Fallback simulation for browsers without Web Speech recognition
         setIsListening(true);
         setTimeout(() => {
           setTranscriptInput(selectedLang === 'hi' ? 'न्यूटन का दूसरा नियम समझाइए' : 'Explain Lenz\'s law with energy conservation');
           setIsListening(false);
-        }, 1500);
+        }, 1400);
       }
     }
   };
 
-  // Submit User Message
   const handleSendMessage = (textToSend) => {
     const query = (textToSend || transcriptInput).trim();
     if (!query) return;
@@ -115,9 +99,8 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
 
     setMessages(prev => [...prev, userMsg]);
     setTranscriptInput('');
-    onTriggerInference(90, 3.5);
+    onTriggerInference(88, 3.4);
 
-    // Find if it matches a preset sample, or generate smart tutor response
     setTimeout(() => {
       const matchedSample = VOICE_CONVERSATION_SAMPLES.find(s => 
         query.toLowerCase().includes(s.subject.toLowerCase()) || 
@@ -136,13 +119,10 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
 
       setMessages(prev => [...prev, botMsg]);
       onTriggerInference(22, 1.6);
-
-      // Auto-read aloud in hands-free mode
-      speakResponse(matchedSample.voiceSnippet || botMsg.text.slice(0, 200));
-    }, 600);
+      speakResponse(matchedSample.voiceSnippet || botMsg.text.slice(0, 180));
+    }, 550);
   };
 
-  // TTS Readout
   const speakResponse = (text) => {
     if (!('speechSynthesis' in window)) return;
 
@@ -165,306 +145,279 @@ export default function VoiceTutor({ selectedCurriculum, selectedLang, onTrigger
     setIsSynthesizing(false);
   };
 
-  // Quick Preset Sample Select
-  const handlePickPreset = (sample) => {
-    setActiveVoiceSample(sample);
-    handleSendMessage(sample.userQuery);
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* Banner / Info */}
-      <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <span className="badge badge-red">Module 2</span>
-            <h2 style={{ fontSize: '18px' }}>Voice-First Tutoring Interface</h2>
-            <span className="curriculum-tag">Whisper INT8 + Phi-3-mini INT4</span>
+      {/* Top Interactive Hero Voice Sphere Banner */}
+      <div className="card-panel glow-red" style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
+        
+        {/* Left Info & Chips */}
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <span style={{ 
+              background: 'rgba(230, 0, 18, 0.15)', 
+              color: 'var(--snapdragon-crimson)', 
+              fontSize: '11px', 
+              fontWeight: '700', 
+              padding: '2px 8px', 
+              borderRadius: '12px' 
+            }}>
+              Module 2 • Hexagon NPU
+            </span>
+            <h2 style={{ fontSize: '18px' }}>Voice-First AI Tutoring Interface</h2>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-            Conversational doubt clearance in English and Hindi. Runs real-time speech-to-text, reasoning, and speech synthesis fully offline.
+          <p style={{ color: 'var(--slate-silver)', fontSize: '13px', marginBottom: '14px' }}>
+            Tap the glowing Snapdragon Orb or click a question to speak. All audio processing is completely offline with sub-300ms latency.
           </p>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--hp-slate)' }}>
-            <span>Speed:</span>
-            {[0.8, 1.0, 1.25].map(rate => (
+          {/* Quick Voice Chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {VOICE_CONVERSATION_SAMPLES.map((sample) => (
               <button
-                key={rate}
-                onClick={() => setSpeechRate(rate)}
+                key={sample.id}
+                onClick={() => handleSendMessage(sample.userQuery)}
                 style={{
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  background: speechRate === rate ? 'var(--snapdragon-red)' : 'rgba(255,255,255,0.05)',
+                  background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid var(--border-subtle)',
-                  color: '#FFF',
-                  fontSize: '11px',
-                  cursor: 'pointer'
+                  borderRadius: '18px',
+                  padding: '6px 14px',
+                  color: '#F1F5F9',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s'
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--npu-cyan)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
               >
-                {rate}x
+                <Sparkles size={12} color="var(--npu-cyan)" />
+                <span>"{sample.userQuery.slice(0, 38)}..."</span>
               </button>
             ))}
           </div>
-
-          {isSynthesizing && (
-            <button className="btn-secondary" onClick={stopSpeaking} style={{ color: 'var(--snapdragon-red)' }}>
-              <VolumeX size={15} />
-              <span>Mute Voice</span>
-            </button>
-          )}
         </div>
-      </div>
 
-      {/* Main Grid: Left Conversation Stream | Right Quick Voice Chips & Waveform */}
-      <div className="grid-2">
-        
-        {/* Left Column: Conversational Dialogue Stream */}
-        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '620px', padding: '16px' }}>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MessageSquare size={16} color="var(--snapdragon-red)" />
-              <span style={{ fontSize: '13px', fontWeight: '700' }}>Active Conversational Session</span>
+        {/* Center / Right: Glowing Interactive Voice Orb */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+          <div className="voice-orb-wrapper">
+            <div className="orb-ring" />
+            <div 
+              className={`voice-orb ${(isListening || isSynthesizing) ? 'active-pulse' : ''}`}
+              onClick={toggleListening}
+              title={isListening ? 'Listening... click to stop' : 'Click to Speak'}
+            >
+              {isListening ? (
+                <MicOff size={32} color="#FFF" />
+              ) : (
+                <Mic size={32} color="#FFF" />
+              )}
             </div>
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--npu-cyan)' }}>
-              Context Memory: Turn {messages.length} / 10
-            </span>
           </div>
 
-          {/* Messages Scroll Area */}
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', paddingRight: '6px' }}>
-            {messages.map((msg) => (
-              <div 
-                key={msg.id}
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ 
+              fontSize: '11.5px', 
+              fontWeight: '700', 
+              fontFamily: 'var(--font-mono)',
+              color: isListening ? 'var(--snapdragon-crimson)' : isSynthesizing ? 'var(--npu-cyan)' : 'var(--slate-silver)' 
+            }}>
+              {isListening ? '● LISTENING (Whisper INT8)' : isSynthesizing ? '● SPEAKING (FastSpeech2)' : 'Tap Orb to Speak'}
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Main Dialogue Conversation Area */}
+      <div className="card-panel" style={{ display: 'flex', flexDirection: 'column', height: '540px', padding: '18px' }}>
+        
+        {/* Dialogue Stream Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <MessageSquare size={16} color="var(--snapdragon-red)" />
+            <span style={{ fontSize: '13px', fontWeight: '700' }}>Live Conversational Stream</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {isSynthesizing && (
+              <button 
+                onClick={stopSpeaking}
                 style={{
+                  background: 'rgba(230,0,18,0.15)',
+                  border: '1px solid rgba(230,0,18,0.3)',
+                  color: 'var(--snapdragon-crimson)',
+                  borderRadius: '14px',
+                  padding: '3px 10px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
                   display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                  alignItems: 'center',
                   gap: '4px'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                  {msg.sender === 'user' ? (
-                    <>
-                      <span>You (Voice Input)</span>
-                      <User size={12} />
-                    </>
-                  ) : (
-                    <>
-                      <Bot size={12} color="var(--npu-cyan)" />
-                      <span>ShikshaMate Tutor [Hexagon NPU]</span>
-                    </>
-                  )}
-                  <span>• {msg.timestamp}</span>
-                </div>
-
-                <div 
-                  style={{
-                    maxWidth: '88%',
-                    padding: '12px 16px',
-                    borderRadius: msg.sender === 'user' ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                    background: msg.sender === 'user' 
-                      ? 'linear-gradient(135deg, rgba(230, 0, 18, 0.3), rgba(230, 0, 18, 0.15))' 
-                      : 'rgba(14, 20, 36, 0.85)',
-                    border: `1px solid ${msg.sender === 'user' ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
-                    color: '#F8FAFC',
-                    fontSize: '13.5px',
-                    lineHeight: '1.6',
-                    whiteSpace: 'pre-line'
-                  }}
-                >
-                  {msg.text}
-
-                  {msg.stats && (
-                    <div style={{ 
-                      marginTop: '8px', 
-                      paddingTop: '6px', 
-                      borderTop: '1px solid rgba(255,255,255,0.06)', 
-                      fontSize: '11px', 
-                      fontFamily: 'var(--font-mono)', 
-                      color: 'var(--hp-slate)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}>
-                      <span>⚡ Latency: <strong style={{ color: 'var(--npu-cyan)' }}>{msg.stats.latency}</strong></span>
-                      <span>🔋 NPU: <strong style={{ color: 'var(--success-emerald)' }}>{msg.stats.npuPower}</strong></span>
-                      <button 
-                        onClick={() => speakResponse(msg.text)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--npu-cyan)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          marginLeft: 'auto'
-                        }}
-                      >
-                        <Volume2 size={12} />
-                        <span>Replay</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input & Voice Controls */}
-          <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border-subtle)', marginTop: '8px' }}>
-            <form 
-              onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
-              style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
-            >
-              <button 
-                type="button"
-                onClick={toggleListening}
-                className={isListening ? 'btn-primary' : 'btn-secondary'}
-                style={{
-                  minWidth: '44px',
-                  height: '44px',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: isListening ? 'var(--snapdragon-red)' : 'rgba(255,255,255,0.05)',
-                  boxShadow: isListening ? '0 0 18px var(--snapdragon-glow)' : 'none'
-                }}
-                title={isListening ? 'Stop Listening' : 'Click to Speak'}
-              >
-                {isListening ? <MicOff size={18} /> : <Mic size={18} color="var(--snapdragon-red)" />}
+                <VolumeX size={12} />
+                <span>Mute</span>
               </button>
+            )}
 
-              <input 
-                type="text"
-                value={transcriptInput}
-                onChange={(e) => setTranscriptInput(e.target.value)}
-                placeholder={isListening ? "Listening with Whisper INT8... Speak now..." : "Ask doubt in Hindi or English (or click mic)..."}
-                style={{
-                  flex: 1,
-                  background: 'rgba(7, 9, 15, 0.8)',
-                  border: `1px solid ${isListening ? 'var(--snapdragon-red)' : 'var(--border-subtle)'}`,
-                  borderRadius: '8px',
-                  padding: '10px 14px',
-                  color: '#FFFFFF',
-                  fontSize: '13px',
-                  outline: 'none',
-                  fontFamily: 'var(--font-body)'
-                }}
-              />
-
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                style={{ height: '44px', padding: '0 16px' }}
-                disabled={!transcriptInput.trim()}
-              >
-                <Send size={15} />
-              </button>
-            </form>
-          </div>
-
-        </div>
-
-        {/* Right Column: Audio Waveform, Quick Chips & Pipeline Metrics */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
-          {/* Audio Waveform & Status */}
-          <div className="glass-card npu-border" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Radio size={16} color="var(--npu-cyan)" />
-                <span style={{ fontSize: '13px', fontWeight: '700' }}>Live Audio Visualizer</span>
-              </div>
-              <span className={`badge ${isListening ? 'badge-red' : isSynthesizing ? 'badge-cyan' : 'badge-green'}`}>
-                {isListening ? 'Listening (Whisper)' : isSynthesizing ? 'Speaking (TTS)' : 'Awaiting Voice'}
-              </span>
-            </div>
-
-            {/* Dynamic Waveform Visualizer */}
-            <div className="waveform-container">
-              {Array.from({ length: 32 }).map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`waveform-bar ${(isListening || isSynthesizing) ? 'active' : ''}`}
-                  style={{
-                    animationDelay: `${(i % 8) * 0.1}s`,
-                    height: (isListening || isSynthesizing) 
-                      ? `${25 + (Math.sin(i * 0.5) * 60 + 35)}%` 
-                      : '20%',
-                    background: isListening ? 'var(--snapdragon-crimson)' : 'var(--npu-cyan)'
-                  }}
-                />
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '11px', color: 'var(--hp-slate)' }}>
-              <span>Sample Rate: 16 kHz Mono</span>
-              <span>Chunk Buffer: 3.0s rolling</span>
-              <span>Direct QNN EP Route</span>
-            </div>
-          </div>
-
-          {/* Quick Exam Doubt Prompt Chips */}
-          <div className="glass-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <Sparkles size={16} color="var(--snapdragon-red)" />
-              <span style={{ fontSize: '13px', fontWeight: '700' }}>Popular Doubt Queries (Click to Ask Voice Tutor)</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {VOICE_CONVERSATION_SAMPLES.map((sample) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--slate-silver)' }}>
+              <span>Speed:</span>
+              {[0.8, 1.0, 1.25].map(rate => (
                 <button
-                  key={sample.id}
-                  onClick={() => handlePickPreset(sample)}
+                  key={rate}
+                  onClick={() => setSpeechRate(rate)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    background: speechRate === rate ? 'var(--snapdragon-red)' : 'transparent',
                     border: '1px solid var(--border-subtle)',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    transition: 'all 0.15s ease'
+                    color: '#FFF',
+                    fontSize: '10px',
+                    cursor: 'pointer'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-accent)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--npu-cyan)', fontWeight: '600' }}>
-                      {sample.subject} • {sample.language}
-                    </span>
-                    <span className="badge badge-amber" style={{ fontSize: '9px' }}>
-                      {sample.stats.latency}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#F1F5F9', fontWeight: '500' }}>
-                    "{sample.userQuery}"
-                  </div>
+                  {rate}x
                 </button>
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Privacy & Zero-Cloud Guarantee Card */}
-          <div className="glass-card" style={{ background: 'rgba(16, 185, 129, 0.06)', borderColor: 'rgba(16, 185, 129, 0.25)', padding: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <CheckCircle2 size={16} color="var(--success-emerald)" />
-              <span style={{ fontSize: '13px', fontWeight: '700', color: '#34D399' }}>Privacy Guarantee: Zero Audio Exfiltration</span>
+        {/* Message Bubble Feed */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', paddingRight: '6px' }}>
+          {messages.map((msg) => (
+            <div 
+              key={msg.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                gap: '4px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                {msg.sender === 'user' ? (
+                  <>
+                    <span>You</span>
+                    <User size={12} />
+                  </>
+                ) : (
+                  <>
+                    <Bot size={12} color="var(--npu-cyan)" />
+                    <span>ShikshaMate Tutor</span>
+                  </>
+                )}
+                <span>• {msg.timestamp}</span>
+              </div>
+
+              <div 
+                style={{
+                  maxWidth: '85%',
+                  padding: '12px 18px',
+                  borderRadius: msg.sender === 'user' ? '18px 18px 2px 18px' : '18px 18px 18px 2px',
+                  background: msg.sender === 'user' 
+                    ? 'linear-gradient(135deg, rgba(230, 0, 18, 0.3), rgba(230, 0, 18, 0.15))' 
+                    : 'rgba(14, 20, 36, 0.85)',
+                  border: `1px solid ${msg.sender === 'user' ? 'var(--border-glow)' : 'var(--border-subtle)'}`,
+                  color: '#F8FAFC',
+                  fontSize: '13px',
+                  lineHeight: '1.6',
+                  whiteSpace: 'pre-line'
+                }}
+              >
+                {msg.text}
+
+                {msg.stats && (
+                  <div style={{ 
+                    marginTop: '8px', 
+                    paddingTop: '6px', 
+                    borderTop: '1px solid rgba(255,255,255,0.06)', 
+                    fontSize: '11px', 
+                    fontFamily: 'var(--font-mono)', 
+                    color: 'var(--slate-silver)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <span>⚡ <strong style={{ color: 'var(--npu-cyan)' }}>{msg.stats.latency}</strong></span>
+                    <span>🔋 <strong style={{ color: 'var(--emerald-green)' }}>{msg.stats.npuPower}</strong></span>
+                    <button 
+                      onClick={() => speakResponse(msg.text)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--npu-cyan)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        marginLeft: 'auto'
+                      }}
+                    >
+                      <Volume2 size={12} />
+                      <span>Replay</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            <p style={{ fontSize: '12px', color: '#CBD5E1', lineHeight: '1.5' }}>
-              Voice audio chunks are decoded directly in Snapdragon Hexagon NPU memory buffers. No audio waveforms, transcripts, or biometric voice prints are transmitted to the cloud.
-            </p>
-          </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
 
+        {/* Input Bar */}
+        <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border-subtle)', marginTop: '8px' }}>
+          <form 
+            onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
+            style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
+          >
+            <button 
+              type="button"
+              onClick={toggleListening}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                border: 'none',
+                background: isListening ? 'var(--snapdragon-red)' : 'rgba(255,255,255,0.06)',
+                color: '#FFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              {isListening ? <MicOff size={16} /> : <Mic size={16} color="var(--snapdragon-red)" />}
+            </button>
+
+            <input 
+              type="text"
+              value={transcriptInput}
+              onChange={(e) => setTranscriptInput(e.target.value)}
+              placeholder={isListening ? "Listening with Whisper INT8... Speak now..." : "Type or speak your doubt in Hindi or English..."}
+              style={{
+                flex: 1,
+                background: 'rgba(6, 9, 16, 0.8)',
+                border: `1px solid ${isListening ? 'var(--snapdragon-red)' : 'var(--border-subtle)'}`,
+                borderRadius: '24px',
+                padding: '9px 18px',
+                color: '#FFF',
+                fontSize: '13px',
+                outline: 'none'
+              }}
+            />
+
+            <button 
+              type="submit" 
+              className="action-btn-primary" 
+              style={{ borderRadius: '20px', padding: '9px 18px' }}
+              disabled={!transcriptInput.trim()}
+            >
+              <Send size={14} />
+            </button>
+          </form>
         </div>
 
       </div>

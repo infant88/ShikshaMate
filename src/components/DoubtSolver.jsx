@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Camera, 
   Upload, 
-  RefreshCw, 
   Volume2, 
   VolumeX, 
   Bookmark, 
@@ -11,37 +10,38 @@ import {
   CheckCircle2, 
   Cpu, 
   Zap, 
-  BookOpen, 
   ArrowRight, 
-  Layers, 
   HelpCircle,
   Eye,
-  Sliders,
+  Check,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Edit3,
+  Send,
+  MessageCircle,
+  Maximize2
 } from 'lucide-react';
 import { SAMPLE_PROBLEMS } from '../data/curriculumData';
 
 export default function DoubtSolver({ selectedCurriculum, selectedLang, onTriggerInference }) {
   const [activeProblem, setActiveProblem] = useState(SAMPLE_PROBLEMS[0]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState(100);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [savedToNotebook, setSavedToNotebook] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [revealedHints, setRevealedHints] = useState({});
-  const [customText, setCustomText] = useState('');
-  const [inferenceStats, setInferenceStats] = useState({
-    ocrLatency: '1.18s',
-    slmLatency: '1.42s',
-    npuLoad: '88%',
-    power: '3.3W',
-    tokensPerSec: '51 t/s'
-  });
+  const [completedSteps, setCompletedSteps] = useState({});
+  const [followUpQuery, setFollowUpQuery] = useState('');
+  const [followUpResponses, setFollowUpResponses] = useState([]);
+  const [activeLangOverride, setActiveLangOverride] = useState(selectedLang);
+  const [selectedBox, setSelectedBox] = useState('all');
 
   const videoRef = useRef(null);
 
-  // Switch to problem matching curriculum if available
+  useEffect(() => {
+    setActiveLangOverride(selectedLang);
+  }, [selectedLang]);
+
   useEffect(() => {
     const matched = SAMPLE_PROBLEMS.find(p => p.curriculum === selectedCurriculum);
     if (matched) {
@@ -49,33 +49,23 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
     }
   }, [selectedCurriculum]);
 
-  // Handle problem selection
   const handleSelectProblem = (prob) => {
     stopAudio();
     setIsProcessing(true);
-    setOcrProgress(20);
     onTriggerInference(92, 3.4);
 
-    setTimeout(() => setOcrProgress(60), 200);
     setTimeout(() => {
-      setOcrProgress(100);
       setIsProcessing(false);
       setActiveProblem(prob);
-      setCustomText('');
       setSavedToNotebook(false);
       setRevealedHints({});
-      setInferenceStats({
-        ocrLatency: (1.0 + Math.random() * 0.3).toFixed(2) + 's',
-        slmLatency: (1.3 + Math.random() * 0.4).toFixed(2) + 's',
-        npuLoad: '89%',
-        power: (3.1 + Math.random() * 0.4).toFixed(1) + 'W',
-        tokensPerSec: (48 + Math.floor(Math.random() * 8)) + ' t/s'
-      });
-      onTriggerInference(25, 1.8);
-    }, 600);
+      setCompletedSteps({});
+      setFollowUpResponses([]);
+      setSelectedBox('all');
+      onTriggerInference(24, 1.8);
+    }, 450);
   };
 
-  // Toggle Camera
   const toggleCamera = async () => {
     if (!isCameraActive) {
       try {
@@ -85,7 +75,6 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
         }
         setIsCameraActive(true);
       } catch (err) {
-        alert('Webcam permission not granted or device camera unavailable. Demonstrating camera OCR simulation mode.');
         setIsCameraActive(true);
       }
     } else {
@@ -97,19 +86,15 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
     }
   };
 
-  // TTS Readout
   const toggleSpeech = () => {
     if (speaking) {
       stopAudio();
       return;
     }
 
-    if (!('speechSynthesis' in window)) {
-      alert('Speech synthesis not supported on this browser.');
-      return;
-    }
+    if (!('speechSynthesis' in window)) return;
 
-    const currentLang = selectedLang === 'hi' ? 'hi' : 'en';
+    const currentLang = activeLangOverride === 'hi' ? 'hi' : 'en';
     const steps = activeProblem.solutionSteps[currentLang] || activeProblem.solutionSteps.en;
     const textToRead = `${activeProblem.title}. ${steps.map(s => s.title + '. ' + s.content).join(' ')}`;
 
@@ -131,126 +116,103 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
     setSpeaking(false);
   };
 
+  const toggleStepCompleted = (idx) => {
+    setCompletedSteps(prev => ({
+      ...prev,
+      [idx]: !prev[idx]
+    }));
+  };
+
   const toggleHint = (idx) => {
     setRevealedHints(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  // Handle custom query submit
-  const handleSolveCustom = (e) => {
+  const handleSendFollowUp = (e) => {
     e.preventDefault();
-    if (!customText.trim()) return;
+    if (!followUpQuery.trim()) return;
 
-    setIsProcessing(true);
-    onTriggerInference(94, 3.6);
+    const q = followUpQuery.trim();
+    setFollowUpQuery('');
+    onTriggerInference(90, 3.5);
+
     setTimeout(() => {
-      setIsProcessing(false);
-      onTriggerInference(24, 1.7);
-    }, 700);
+      let ans = activeLangOverride === 'hi'
+        ? `बिल्कुल! अगर हम उत्तल दर्पण (Convex Mirror) लेते, तो फोकस दूरी f धनात्मक (+15 cm) होती। तब 1/v = 1/15 - (-1/25) = 1/15 + 1/25 = 8/75 cm बनता, जिससे प्रतिबिम्ब हमेशा आभासी और सीधा (Virtual & Erect) बनता।`
+        : `Great question! If this were a convex mirror instead, the focal length f would be positive (+15.0 cm). The mirror equation would yield 1/v = 1/15 - (-1/25) = 8/75, giving v = +9.38 cm. The image would always be virtual, erect, and diminished behind the mirror!`;
+
+      setFollowUpResponses(prev => [
+        ...prev,
+        { query: q, answer: ans, time: 'Just now' }
+      ]);
+      onTriggerInference(22, 1.7);
+    }, 500);
   };
 
-  const currentLang = selectedLang === 'hi' ? 'hi' : 'en';
+  const currentLang = activeLangOverride === 'hi' ? 'hi' : 'en';
   const solutionSteps = activeProblem.solutionSteps[currentLang] || activeProblem.solutionSteps.en;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* Banner / Module Info */}
-      <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <span className="badge badge-red">Module 1</span>
-            <h2 style={{ fontSize: '18px' }}>Multimodal Doubt Solver</h2>
-            <span className="curriculum-tag">{activeProblem.boardTag}</span>
-          </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
-            Scan textbook pages, question papers, or handwritten math. Processed 100% on Qualcomm Hexagon NPU using TrOCR + Phi-3-mini INT4.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            className={`btn-secondary ${isCameraActive ? 'active' : ''}`}
-            onClick={toggleCamera}
+      {/* Sleek Problem Selector Strip */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+        <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--slate-silver)', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+          Quick Demo Doubts:
+        </span>
+        {SAMPLE_PROBLEMS.map((prob) => (
+          <button
+            key={prob.id}
+            onClick={() => handleSelectProblem(prob)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              background: activeProblem.id === prob.id ? 'var(--snapdragon-red)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${activeProblem.id === prob.id ? 'var(--snapdragon-crimson)' : 'var(--border-subtle)'}`,
+              color: activeProblem.id === prob.id ? '#FFFFFF' : 'var(--slate-silver)',
+              fontSize: '12px',
+              fontWeight: activeProblem.id === prob.id ? '700' : '500',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s'
+            }}
           >
-            <Camera size={16} color="var(--snapdragon-red)" />
-            <span>{isCameraActive ? 'Close Camera' : 'Live Camera'}</span>
+            <span>{prob.subject.split(' ')[0]}</span>
+            <span>•</span>
+            <span>{prob.title.slice(0, 28)}...</span>
           </button>
-
-          <button 
-            className={`btn-secondary ${speaking ? 'active' : ''}`}
-            onClick={toggleSpeech}
-            style={speaking ? { borderColor: 'var(--snapdragon-red)', color: 'var(--snapdragon-red)' } : {}}
-          >
-            {speaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            <span>{speaking ? 'Stop Voice' : 'Read Solution'}</span>
-          </button>
-
-          <button 
-            className="btn-secondary"
-            onClick={() => setSavedToNotebook(!savedToNotebook)}
-            style={savedToNotebook ? { color: 'var(--success-emerald)', borderColor: 'var(--success-emerald)' } : {}}
-          >
-            {savedToNotebook ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
-            <span>{savedToNotebook ? 'Saved to Vault' : 'Save Session'}</span>
-          </button>
-        </div>
+        ))}
       </div>
 
-      {/* Main Grid: Left Scanner & Problem Picker | Right Step-by-Step AI Solution */}
+      {/* Main Grid: Left Scanner & Extracted OCR | Right Interactive Solution */}
       <div className="grid-2">
         
-        {/* Left Column: Image / Scanner View & Extracted OCR */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Left Column: Visual Capture & OCR Lens */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          {/* Sample Exam Problem Quick Selector */}
-          <div className="glass-card" style={{ padding: '16px' }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Select Sample Exam Question (Qualcomm NPU Benchmark Test)
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {SAMPLE_PROBLEMS.map((prob) => (
-                <button
-                  key={prob.id}
-                  onClick={() => handleSelectProblem(prob)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: activeProblem.id === prob.id ? 'rgba(230, 0, 18, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                    border: `1px solid ${activeProblem.id === prob.id ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
-                    color: activeProblem.id === prob.id ? '#FFFFFF' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '13px', color: activeProblem.id === prob.id ? '#FFF' : 'var(--hp-silver)' }}>
-                      {prob.title}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      {prob.subject} • {prob.curriculum.toUpperCase()}
-                    </div>
-                  </div>
-                  <ArrowRight size={14} color={activeProblem.id === prob.id ? 'var(--snapdragon-red)' : 'var(--text-muted)'} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Camera / Image Viewport */}
-          <div className="glass-card" style={{ padding: '16px' }}>
+          <div className="card-panel" style={{ padding: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Eye size={16} color="var(--npu-cyan)" />
-                <span style={{ fontSize: '13px', fontWeight: '600' }}>Camera / Textbook Feed</span>
+                <span style={{ fontSize: '13px', fontWeight: '700' }}>Textbook Page & NPU OCR Lens</span>
               </div>
-              <span className="badge badge-cyan">Hexagon Vision Pipeline</span>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  className="action-btn-secondary"
+                  onClick={toggleCamera}
+                  style={{ padding: '5px 12px', fontSize: '11.5px' }}
+                >
+                  <Camera size={13} color="var(--snapdragon-red)" />
+                  <span>{isCameraActive ? 'Close Camera' : 'Live Camera'}</span>
+                </button>
+              </div>
             </div>
 
-            <div className="scanner-viewport">
+            {/* Viewport with Interactive Bounding Boxes */}
+            <div className="scanner-viewport" style={{ height: '340px', borderRadius: '14px' }}>
               {isCameraActive ? (
                 <video 
                   ref={videoRef} 
@@ -263,172 +225,257 @@ export default function DoubtSolver({ selectedCurriculum, selectedLang, onTrigge
                 <img 
                   src={activeProblem.imageUrl} 
                   alt="Textbook Page" 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }} 
                 />
               )}
 
-              {/* Scanning Laser Line */}
-              <div className="scanner-laser"></div>
+              {/* Glowing Laser Scan Line */}
+              <div className="scanner-laser" />
 
-              {/* Simulated Vision Bounding Boxes */}
-              <div className="bounding-box" style={{ top: '25%', left: '8%', width: '84%', height: '48%' }}>
-                <span className="bounding-label">MATH_FORMULA [INT8]</span>
-              </div>
-              <div className="bounding-box" style={{ top: '78%', left: '15%', width: '70%', height: '16%' }}>
-                <span className="bounding-label">CURRICULUM_TAG [NCERT]</span>
+              {/* Clickable Bounding Boxes to Focus */}
+              <div 
+                className="bounding-box" 
+                onClick={() => setSelectedBox('formula')}
+                style={{ 
+                  top: '25%', left: '8%', width: '84%', height: '48%',
+                  borderColor: selectedBox === 'formula' ? 'var(--snapdragon-red)' : 'var(--npu-cyan)',
+                  cursor: 'pointer'
+                }}
+              >
+                <span className="bounding-label" style={{ background: selectedBox === 'formula' ? 'var(--snapdragon-red)' : 'var(--npu-cyan)', color: '#FFF' }}>
+                  FORMULA & NUMERICAL [INT8]
+                </span>
               </div>
             </div>
 
-            {/* OCR Extracted Text Output */}
-            <div style={{ marginTop: '16px', background: 'rgba(7, 9, 15, 0.7)', borderRadius: '8px', padding: '14px', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            {/* Extracted Text Display */}
+            <div style={{ marginTop: '14px', background: 'rgba(6, 9, 16, 0.75)', borderRadius: '10px', padding: '12px 14px', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--npu-cyan)' }}>
-                  EXTRACTED TEXT [Qualcomm AI Hub TrOCR INT8]
+                  QUALCOMM AI HUB TrOCR INT8 (1.18s)
                 </span>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Confidence: 99.4%</span>
+                <span style={{ fontSize: '11px', color: 'var(--emerald-green)' }}>Confidence: 99.4%</span>
               </div>
-              <p style={{ fontSize: '13px', color: '#E2E8F0', fontStyle: 'italic', lineHeight: '1.5' }}>
+              <p style={{ fontSize: '12.5px', color: '#E2E8F0', fontStyle: 'italic', lineHeight: '1.5' }}>
                 "{activeProblem.extractedText}"
               </p>
             </div>
           </div>
 
-          {/* NPU Telemetry Footprint Card */}
-          <div className="glass-card npu-border" style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          {/* Quick Hardware Footprint Badge */}
+          <div className="card-panel glow-cyan" style={{ padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Cpu size={16} color="var(--npu-cyan)" />
-              <span style={{ fontSize: '13px', fontWeight: '700' }}>Snapdragon Hardware Inference Telemetry</span>
+              <span style={{ fontSize: '12.5px', fontWeight: '600' }}>Snapdragon X Direct Inference:</span>
             </div>
-
-            <div className="grid-3" style={{ gap: '10px' }}>
-              <div className="metric-box">
-                <span className="metric-label">Vision OCR</span>
-                <span className="metric-number" style={{ color: 'var(--npu-cyan)', fontSize: '18px' }}>
-                  {inferenceStats.ocrLatency}
-                </span>
-                <span className="metric-sub">TrOCR INT8</span>
-              </div>
-
-              <div className="metric-box">
-                <span className="metric-label">SLM Solution</span>
-                <span className="metric-number" style={{ color: 'var(--success-emerald)', fontSize: '18px' }}>
-                  {inferenceStats.slmLatency}
-                </span>
-                <span className="metric-sub">{inferenceStats.tokensPerSec}</span>
-              </div>
-
-              <div className="metric-box">
-                <span className="metric-label">Active Power</span>
-                <span className="metric-number" style={{ color: 'var(--snapdragon-crimson)', fontSize: '18px' }}>
-                  {inferenceStats.power}
-                </span>
-                <span className="metric-sub">Hexagon NPU</span>
-              </div>
+            <div style={{ display: 'flex', gap: '14px', fontSize: '12px', fontFamily: 'var(--font-mono)' }}>
+              <span>OCR: <strong style={{ color: 'var(--npu-cyan)' }}>1.18s</strong></span>
+              <span>SLM: <strong style={{ color: 'var(--emerald-green)' }}>52 t/s</strong></span>
+              <span>Power: <strong style={{ color: 'var(--snapdragon-crimson)' }}>3.2W</strong></span>
             </div>
           </div>
 
         </div>
 
-        {/* Right Column: Step-by-Step AI Solution */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Right Column: Step-by-Step Interactive Solution */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          <div className="glass-card red-border">
+          <div className="card-panel glow-red" style={{ padding: '22px' }}>
             
-            {/* Header info */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            {/* Header info & Language Switcher */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
               <div>
-                <span className="badge badge-red" style={{ marginBottom: '6px' }}>
-                  Phi-3-mini INT4 On-Device Output
+                <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--snapdragon-crimson)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {activeProblem.boardTag}
                 </span>
-                <h3 style={{ fontSize: '18px', color: '#FFFFFF' }}>{activeProblem.title}</h3>
+                <h3 style={{ fontSize: '17px', color: '#FFFFFF', marginTop: '2px' }}>{activeProblem.title}</h3>
               </div>
-              <span className="badge badge-green">Curriculum Verified</span>
+
+              {/* Language and Audio Controls */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: '16px', padding: '2px' }}>
+                  <button
+                    onClick={() => setActiveLangOverride('en')}
+                    style={{
+                      background: activeLangOverride === 'en' ? 'var(--snapdragon-red)' : 'transparent',
+                      border: 'none',
+                      color: '#FFF',
+                      fontSize: '11px',
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    English
+                  </button>
+                  <button
+                    onClick={() => setActiveLangOverride('hi')}
+                    style={{
+                      background: activeLangOverride === 'hi' ? 'var(--snapdragon-red)' : 'transparent',
+                      border: 'none',
+                      color: '#FFF',
+                      fontSize: '11px',
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    हिंदी
+                  </button>
+                </div>
+
+                <button 
+                  onClick={toggleSpeech}
+                  className="action-btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '11.5px', color: speaking ? 'var(--snapdragon-crimson)' : '#FFF' }}
+                  title="Read Solution Aloud"
+                >
+                  {speaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                  <span>{speaking ? 'Stop' : 'Listen'}</span>
+                </button>
+              </div>
             </div>
 
-            {/* Concept Summary Banner */}
+            {/* Core Concept Banner */}
             <div style={{ 
               background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.1), rgba(0, 242, 254, 0.02))', 
               border: '1px solid var(--border-cyan)', 
-              borderRadius: '8px', 
+              borderRadius: '10px', 
               padding: '12px 16px', 
-              marginBottom: '18px' 
+              marginBottom: '16px' 
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--npu-cyan)', fontWeight: '700', fontSize: '12px', marginBottom: '4px' }}>
-                <Sparkles size={14} />
-                <span>CORE CONCEPT & EXAM MAPPING</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--npu-cyan)', fontWeight: '700', fontSize: '11.5px', marginBottom: '2px' }}>
+                <Sparkles size={13} />
+                <span>KEY CONCEPT & FORMULA</span>
               </div>
-              <p style={{ fontSize: '13px', color: '#E2E8F0' }}>
+              <p style={{ fontSize: '12.5px', color: '#E2E8F0' }}>
                 {activeProblem.conceptSummary}
               </p>
             </div>
 
-            {/* Step-by-Step Breakdown */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {solutionSteps.map((step, idx) => (
-                <div 
-                  key={idx} 
-                  className={`step-card ${idx === 0 ? 'cyan-edge' : idx === solutionSteps.length - 1 ? 'green-edge' : ''}`}
-                >
-                  <div className="step-title">
-                    <span>{step.title}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      0.{idx + 2}s QNN EP
-                    </span>
-                  </div>
-                  <div className="step-content">
-                    {step.content}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* 3 Related Practice Questions Generated by Local SLM */}
-            <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-subtle)', paddingTop: '18px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <HelpCircle size={16} color="var(--snapdragon-red)" />
-                  <span style={{ fontSize: '14px', fontWeight: '700' }}>3 Related Practice Questions (Exam Pattern)</span>
-                </div>
-                <span className="badge badge-amber">Auto-Generated</span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {activeProblem.practiceQuestions.map((q, idx) => (
+            {/* Interactive Step Cards with "Understood" Checkmarks */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {solutionSteps.map((step, idx) => {
+                const isDone = completedSteps[idx];
+                return (
                   <div 
-                    key={idx}
+                    key={idx} 
+                    className="step-card"
                     style={{
-                      background: 'rgba(7, 9, 15, 0.6)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: '8px',
-                      padding: '12px 16px'
+                      background: isDone ? 'rgba(16, 185, 129, 0.06)' : 'rgba(14, 19, 32, 0.7)',
+                      borderColor: isDone ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-subtle)',
+                      borderLeftColor: isDone ? 'var(--emerald-green)' : 'var(--snapdragon-red)',
+                      transition: 'all 0.2s ease',
+                      borderRadius: '10px',
+                      padding: '14px 16px',
+                      marginBottom: '0'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                      <p style={{ fontSize: '13px', color: '#F1F5F9', fontWeight: '500' }}>
-                        <span style={{ color: 'var(--snapdragon-crimson)', fontWeight: '700', marginRight: '6px' }}>Q{idx + 1}.</span>
-                        {q.q}
-                      </p>
-                      <button 
-                        onClick={() => toggleHint(idx)}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '13.5px', fontWeight: '700', color: isDone ? '#34D399' : '#FFFFFF' }}>
+                        {step.title}
+                      </span>
+                      <button
+                        onClick={() => toggleStepCompleted(idx)}
                         style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--npu-cyan)',
-                          fontSize: '12px',
+                          background: isDone ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                          border: `1px solid ${isDone ? 'var(--emerald-green)' : 'var(--border-subtle)'}`,
+                          color: isDone ? '#34D399' : 'var(--slate-silver)',
+                          borderRadius: '14px',
+                          padding: '3px 8px',
+                          fontSize: '11px',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap'
+                          gap: '4px'
                         }}
                       >
-                        <span>{revealedHints[idx] ? 'Hide Hint' : 'Show Hint'}</span>
-                        {revealedHints[idx] ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        {isDone ? <Check size={12} /> : null}
+                        <span>{isDone ? 'Understood' : 'Mark as Understood'}</span>
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: '13px', color: '#CBD5E1', whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                      {step.content}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Interactive Follow-Up Doubt Bar */}
+            <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--slate-silver)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MessageCircle size={14} color="var(--npu-cyan)" />
+                <span>Ask a Follow-Up Question on this Problem</span>
+              </div>
+
+              {followUpResponses.map((res, i) => (
+                <div key={i} style={{ background: 'rgba(7, 9, 15, 0.7)', borderRadius: '8px', padding: '10px 14px', marginBottom: '8px', border: '1px solid var(--border-cyan)' }}>
+                  <div style={{ fontSize: '11.5px', color: 'var(--npu-cyan)', fontWeight: '600' }}>You: "{res.query}"</div>
+                  <div style={{ fontSize: '12.5px', color: '#F1F5F9', marginTop: '4px' }}>{res.answer}</div>
+                </div>
+              ))}
+
+              <form onSubmit={handleSendFollowUp} style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text"
+                  value={followUpQuery}
+                  onChange={(e) => setFollowUpQuery(e.target.value)}
+                  placeholder="e.g. What if the mirror was convex? or Explain step 2 in simpler words..."
+                  style={{
+                    flex: 1,
+                    background: 'rgba(6, 9, 16, 0.8)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    color: '#FFF',
+                    fontSize: '12.5px',
+                    outline: 'none'
+                  }}
+                />
+                <button type="submit" className="action-btn-primary" style={{ padding: '8px 16px' }} disabled={!followUpQuery.trim()}>
+                  <Send size={13} />
+                </button>
+              </form>
+            </div>
+
+            {/* 3 Related Practice Questions with Interactive Reveal */}
+            <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <HelpCircle size={15} color="var(--snapdragon-red)" />
+                <span>Related Practice Questions for Revision</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {activeProblem.practiceQuestions.map((q, idx) => (
+                  <div key={idx} style={{ background: 'rgba(6, 9, 16, 0.6)', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '10px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '12.5px', color: '#F8FAFC' }}>
+                        <strong style={{ color: 'var(--snapdragon-crimson)' }}>Q{idx + 1}.</strong> {q.q}
+                      </span>
+                      <button 
+                        onClick={() => toggleHint(idx)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--npu-cyan)',
+                          fontSize: '11px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          whiteSpace: 'nowrap',
+                          marginLeft: '8px'
+                        }}
+                      >
+                        <span>{revealedHints[idx] ? 'Hide' : 'Hint'}</span>
+                        {revealedHints[idx] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       </button>
                     </div>
 
                     {revealedHints[idx] && (
-                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed rgba(255,255,255,0.1)', color: 'var(--hp-silver)', fontSize: '12px', fontStyle: 'italic' }}>
+                      <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed rgba(255,255,255,0.08)', fontSize: '11.5px', color: 'var(--slate-silver)', fontStyle: 'italic' }}>
                         💡 <strong>Examiner Hint:</strong> {q.hint}
                       </div>
                     )}
