@@ -6,12 +6,16 @@ import AdaptiveQuiz from './components/AdaptiveQuiz';
 import SnapdragonNpuDashboard from './components/SnapdragonNpuDashboard';
 import CurriculumExplorer from './components/CurriculumExplorer';
 import SubmissionPitch from './components/SubmissionPitch';
-import { Cpu, ShieldCheck, Heart, Camera, Mic, Brain, Sparkles, BookOpen } from 'lucide-react';
+import ApiKeyModal from './components/ApiKeyModal';
+import { Cpu, ShieldCheck } from 'lucide-react';
+import { getGeminiApiKey } from './services/geminiService';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('doubt');
   const [selectedCurriculum, setSelectedCurriculum] = useState('ncert_10');
   const [selectedLang, setSelectedLang] = useState('hi');
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(Boolean(getGeminiApiKey()));
   const [npuLiveStats, setNpuLiveStats] = useState({
     activeTops: 24,
     powerWatt: '2.1',
@@ -71,6 +75,8 @@ export default function App() {
         selectedLang={selectedLang}
         setSelectedLang={setSelectedLang}
         npuLiveStats={npuLiveStats}
+        onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+        hasApiKey={hasApiKey}
       />
 
       {/* Main Viewport Content */}
@@ -110,6 +116,7 @@ export default function App() {
             selectedCurriculum={selectedCurriculum}
             setSelectedCurriculum={setSelectedCurriculum}
             selectedLang={selectedLang}
+            onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
           />
         )}
 
@@ -117,6 +124,13 @@ export default function App() {
           <SubmissionPitch />
         )}
       </main>
+
+      {/* Gemini API Key Management Modal */}
+      <ApiKeyModal 
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onKeyUpdated={(key) => setHasApiKey(Boolean(key))}
+      />
 
       {/* Clean Footer */}
       <footer style={{

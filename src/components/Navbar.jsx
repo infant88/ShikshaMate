@@ -24,7 +24,9 @@ export default function Navbar({
   setSelectedCurriculum, 
   selectedLang, 
   setSelectedLang,
-  npuLiveStats 
+  npuLiveStats,
+  onOpenApiKeyModal,
+  hasApiKey
 }) {
   const [showFullTelemetry, setShowFullTelemetry] = useState(false);
   const t = UI_TRANSLATIONS[selectedLang] || UI_TRANSLATIONS.en;
@@ -210,6 +212,28 @@ export default function Navbar({
               ))}
             </select>
           </div>
+
+          <button
+            onClick={onOpenApiKeyModal}
+            style={{
+              background: hasApiKey ? 'rgba(16, 185, 129, 0.12)' : 'rgba(0, 242, 254, 0.12)',
+              border: `1px solid ${hasApiKey ? 'rgba(16, 185, 129, 0.35)' : 'rgba(0, 242, 254, 0.35)'}`,
+              color: hasApiKey ? '#34D399' : 'var(--npu-cyan)',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '11.5px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+            title="Configure Gemini API Key"
+          >
+            <Sparkles size={13} color={hasApiKey ? '#34D399' : 'var(--npu-cyan)'} />
+            <span>{hasApiKey ? 'Gemini 1.5 Active' : 'Gemini API Key'}</span>
+          </button>
         </div>
       </nav>
     </header>

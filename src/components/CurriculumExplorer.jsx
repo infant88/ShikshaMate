@@ -4,13 +4,15 @@ import {
   Search, 
   Bookmark, 
   Sparkles, 
-  FileText, 
   Layers, 
-  CheckCircle,
-  Tag
+  Key,
+  ExternalLink,
+  Loader2,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
-import { CURRICULUM_OPTIONS } from '../data/curriculumData';
 import { UI_TRANSLATIONS } from '../data/translations';
+import { searchFormulaWithGemini, getGeminiApiKey } from '../services/geminiService';
 
 export const FORMULA_VAULT = [
   {
@@ -57,9 +59,17 @@ export const FORMULA_VAULT = [
   }
 ];
 
-export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurriculum, selectedLang }) {
+export default function CurriculumExplorer({ 
+  selectedCurriculum, 
+  setSelectedCurriculum, 
+  selectedLang,
+  onOpenApiKeyModal 
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
+  const [customFormulas, setCustomFormulas] = useState([]);
+  const [isSearchingGemini, setIsSearchingGemini] = useState(false);
+  const [geminiError, setGeminiError] = useState('');
 
   const t = (UI_TRANSLATIONS[selectedLang] || UI_TRANSLATIONS.en).curriculum;
 
@@ -71,13 +81,43 @@ export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurr
     { id: 'Mathematics', label: t.mathematics }
   ];
 
-  const filteredFormulas = FORMULA_VAULT.filter(item => {
-    const matchesSubject = selectedSubject === 'All' || item.subject === selectedSubject;
-    const matchesQuery = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         item.formula.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.topic.toLowerCase().includes(searchQuery.toLowerCase());
+  const allFormulas = [...customFormulas, ...FORMULA_VAULT];
+
+  const filteredFormulas = allFormulas.filter(item => {
+    const matchesSubject = selectedSubject === 'All' || item.subject.toLowerCase() === selectedSubject.toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return matchesSubject;
+
+    const matchesQuery = item.title.toLowerCase().includes(query) || 
+                         item.formula.toLowerCase().includes(query) ||
+                         item.topic.toLowerCase().includes(query);
     return matchesSubject && matchesQuery;
   });
+
+  const handleSearchWithGemini = async () => {
+    if (!searchQuery.trim()) return;
+    const hasKey = getGeminiApiKey();
+    if (!hasKey) {
+      if (onOpenApiKeyModal) onOpenApiKeyModal();
+      return;
+    }
+
+    setIsSearchingGemini(true);
+    setGeminiError('');
+
+    try {
+      const result = await searchFormulaWithGemini(searchQuery, selectedSubject, selectedLang);
+      setCustomFormulas(prev => [result, ...prev]);
+    } catch (err) {
+      if (err.message === 'MISSING_API_KEY') {
+        if (onOpenApiKeyModal) onOpenApiKeyModal();
+      } else {
+        setGeminiError(err.message || 'Failed to fetch formula via Gemini API.');
+      }
+    } finally {
+      setIsSearchingGemini(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -118,13 +158,14 @@ export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurr
         </div>
       </div>
 
-      {/* Search Input Bar */}
+      {/* Search Input Bar with Gemini Expansion */}
       <div className="card-panel" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <Search size={16} color="var(--npu-cyan)" />
         <input 
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => { setSearchQuery(e.target.value); setGeminiError(''); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSearchWithGemini(); }}
           placeholder={t.searchPlaceholder}
           style={{
             flex: 1,
@@ -136,15 +177,79 @@ export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurr
             fontFamily: 'var(--font-body)'
           }}
         />
+
         {searchQuery && (
           <button 
             onClick={() => setSearchQuery('')}
-            style={{ background: 'none', border: 'none', color: 'var(--slate-silver)', cursor: 'pointer', fontSize: '12px' }}
+            style={{ background: 'none', border: 'none', color: 'var(--slate-silver)', cursor: 'pointer', fontSize: '12px', marginRight: '6px' }}
           >
             Clear
           </button>
         )}
+
+        <button 
+          onClick={handleSearchWithGemini}
+          disabled={isSearchingGemini || !searchQuery.trim()}
+          className="action-btn-cyan"
+          style={{ padding: '6px 14px', fontSize: '12px' }}
+          title="Search any formula live via Gemini API in your selected language"
+        >
+          {isSearchingGemini ? <Loader2 size={13} className="pulse-indicator" /> : <Sparkles size={13} />}
+          <span>{isSearchingGemini ? 'Searching Gemini...' : 'Search with Gemini'}</span>
+        </button>
       </div>
+
+      {/* Error alert if any */}
+      {geminiError && (
+        <div style={{ 
+          background: 'rgba(230, 0, 18, 0.12)', 
+          border: '1px solid rgba(230, 0, 18, 0.3)', 
+          borderRadius: '8px', 
+          padding: '10px 14px', 
+          color: '#F87171', 
+          fontSize: '12.5px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <AlertCircle size={15} />
+          <span>{geminiError}</span>
+        </div>
+      )}
+
+      {/* When no local match is found */}
+      {filteredFormulas.length === 0 && searchQuery && (
+        <div className="card-panel glow-cyan" style={{ textAlign: 'center', padding: '30px 20px' }}>
+          <Sparkles size={36} color="var(--npu-cyan)" style={{ margin: '0 auto 10px' }} />
+          <h4 style={{ fontSize: '16px', color: '#FFF', marginBottom: '6px' }}>
+            "{searchQuery}" is not in the offline seed database
+          </h4>
+          <p style={{ color: 'var(--slate-silver)', fontSize: '13px', maxWidth: '520px', margin: '0 auto 16px' }}>
+            Click below to generate and translate this formula live with Gemini AI in your selected language!
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            <button 
+              className="action-btn-primary"
+              onClick={handleSearchWithGemini}
+              disabled={isSearchingGemini}
+            >
+              <Sparkles size={14} />
+              <span>Generate "{searchQuery}" with Gemini</span>
+            </button>
+
+            {!getGeminiApiKey() && (
+              <button 
+                className="action-btn-secondary"
+                onClick={onOpenApiKeyModal}
+              >
+                <Key size={14} color="var(--npu-cyan)" />
+                <span>Configure Gemini API Key</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Formulas & Exam Insights Grid */}
       <div className="grid-2">
@@ -152,9 +257,24 @@ export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurr
           <div key={idx} className="card-panel glow-red" style={{ padding: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--snapdragon-crimson)', fontWeight: '700', textTransform: 'uppercase' }}>
-                  {item.subject} • {item.topic}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--snapdragon-crimson)', fontWeight: '700', textTransform: 'uppercase' }}>
+                    {item.subject} • {item.topic}
+                  </span>
+                  {item.isGeminiGenerated && (
+                    <span style={{ 
+                      background: 'rgba(0, 242, 254, 0.12)', 
+                      border: '1px solid rgba(0, 242, 254, 0.3)', 
+                      color: 'var(--npu-cyan)', 
+                      fontSize: '10px', 
+                      fontWeight: '700', 
+                      padding: '1px 6px', 
+                      borderRadius: '8px' 
+                    }}>
+                      ✨ Gemini AI
+                    </span>
+                  )}
+                </div>
                 <h4 style={{ fontSize: '15px', color: '#FFF', marginTop: '2px' }}>{item.title}</h4>
               </div>
               <Bookmark size={14} color="var(--slate-silver)" style={{ cursor: 'pointer' }} />
@@ -174,6 +294,13 @@ export default function CurriculumExplorer({ selectedCurriculum, setSelectedCurr
             }}>
               {item.formula}
             </div>
+
+            {/* Concept if present */}
+            {item.concept && (
+              <p style={{ fontSize: '12px', color: '#E2E8F0', marginBottom: '8px', fontStyle: 'italic' }}>
+                {item.concept}
+              </p>
+            )}
 
             {/* Exam Note */}
             <div style={{ fontSize: '12px', color: '#CBD5E1', lineHeight: '1.5' }}>
