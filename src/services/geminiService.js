@@ -1,5 +1,6 @@
 // Gemini AI Service for ShikshaMate
 // Enables dynamic formula lookup, custom doubt solving, and multilingual tutoring
+// Loads API key safely from environment variable (.env.local) or local browser storage
 
 export const getGeminiApiKey = () => {
   return localStorage.getItem('shikshamate_gemini_api_key') || 
@@ -38,22 +39,26 @@ export async function searchFormulaWithGemini(query, subject = 'All', lang = 'en
   const prompt = `You are ShikshaMate AI, an Indian curriculum expert (NCERT, CBSE, JEE, NEET, State Boards).
 A student is searching for the formula: "${query}" in subject: "${subject}".
 
-Please provide the complete, accurate formula and curriculum details in ${targetLang}.
+Please provide the complete, accurate formula and curriculum details translated natively into ${targetLang}.
 Respond ONLY with a valid JSON object matching this exact structure:
 {
   "subject": "${subject === 'All' ? 'Physics/Chemistry/Math/Biology' : subject}",
   "topic": "Specific chapter or unit name",
   "title": "Clear formula title",
   "formula": "Standard mathematical formula with proper notation",
-  "examNote": "High-yield examiner marking tip, sign conventions, or common pitfalls for Indian exams",
-  "concept": "1-2 sentence core concept summary"
+  "examNote": "High-yield examiner marking tip, sign conventions, or common pitfalls for Indian exams in ${targetLang}",
+  "concept": "1-2 sentence core concept summary in ${targetLang}"
 }
-Do not include markdown code fence formatting like \`\`\`json. Just the raw JSON object.`;
+Do not include any surrounding markdown or code blocks. Just the raw JSON object.`;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': apiKey
+      },
       body: JSON.stringify({
         contents: [
           {
@@ -75,8 +80,12 @@ Do not include markdown code fence formatting like \`\`\`json. Just the raw JSON
     const data = await response.json();
     const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
-    // Clean potential markdown quotes
-    const cleanedText = candidateText.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Clean potential markdown quotes and code block formatting
+    const cleanedText = candidateText
+      .replace(/```json/gi, '')
+      .replace(/```/g, '')
+      .trim();
+
     const parsed = JSON.parse(cleanedText);
 
     return {
@@ -114,7 +123,7 @@ Respond ONLY with a valid JSON object matching this structure:
   "title": "Short title of the problem",
   "subject": "Subject (Physics/Chemistry/Math/Biology)",
   "boardTag": "${curriculum} Curriculum Aligned",
-  "conceptSummary": "Core formula and theorem applied",
+  "conceptSummary": "Core formula and theorem applied in ${targetLang}",
   "solutionSteps": [
     { "title": "Step 1: Given Data & Sign Conventions", "content": "..." },
     { "title": "Step 2: Formula Application & Derivation", "content": "..." },
@@ -129,9 +138,13 @@ Respond ONLY with a valid JSON object matching this structure:
 Do not include markdown code block syntax. Only valid JSON.`;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-goog-api-key': apiKey
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.2, maxOutputTokens: 1500 }
@@ -145,7 +158,7 @@ Do not include markdown code block syntax. Only valid JSON.`;
 
     const data = await response.json();
     const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const cleanedText = candidateText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const cleanedText = candidateText.replace(/```json/gi, '').replace(/```/g, '').trim();
     return JSON.parse(cleanedText);
   } catch (err) {
     console.error('Gemini doubt solver error:', err);
